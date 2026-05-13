@@ -446,28 +446,31 @@ class LabApp(MDApp):
         self.url_dialog.open()
 
     def start_url_import(self):
-        """Запускает загрузку JSON по ссылке в фоновом потоке."""
         url = self.url_dialog.content_cls.text.strip()
         if not url:
             self.show_snackbar("Введите ссылку")
             return
+
+        # Автопреобразование GitHub-ссылок в raw
+        if "github.com" in url and "/blob/" in url:
+            url = url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
+
         self.url_dialog.dismiss()
-        # Выполняем загрузку в отдельном потоке, чтобы не подвисал интерфейс
         threading.Thread(target=self.download_and_import, args=(url,), daemon=True).start()
 
     def download_and_import(self, url):
-        """Фоновая загрузка JSON и импорт."""
         try:
             req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             with urlopen(req, timeout=15) as response:
-                data = json.loads(response.read().decode('utf-8'))
-            # Проверяем, что это словарь с ожидаемой структурой
+                raw_data = response.read().decode('utf-8')
+            data = json.loads(raw_data)
             if not isinstance(data, dict):
                 raise ValueError("Некорректный формат данных")
-            # Обновляем UI в главном потоке
-            Clock.schedule_once(lambda dt: self.merge_imported_data(data))
-        except Exception as e:
-            Clock.schedule_once(lambda dt: self.show_snackbar(f"Ошибка импорта: {e}"))
+            # Вызов в главном потоке с корректной передачей данных
+            Clock.schedule_once(lambda dt, d=data: self.merge_imported_data(d))
+        except Exception as exc:
+            err_msg = str(exc)  # сохраняем строку ошибки
+            Clock.schedule_once(lambda dt, msg=err_msg: self.show_snackbar(f"Ошибка импорта: {msg}"))
 
     def merge_imported_data(self, imported_data):
         """Объединяет импортированные данные с текущими и обновляет списки."""

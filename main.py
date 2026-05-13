@@ -521,3 +521,4 @@ class LabApp(MDApp):
 
 if __name__ == "__main__":
     LabApp().run()
+

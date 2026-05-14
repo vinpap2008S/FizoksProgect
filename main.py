@@ -171,6 +171,10 @@ ScreenManager:
                         hint_text: "Название темы"
                         required: True
                     MDTextField:
+                        id: new_goal
+                        hint_text: "Цель работы"
+                        required: False
+                    MDTextField:
                         id: new_video1
                         hint_text: "Ссылка на видео 1 (обязательно)"
                         helper_text: "Любая ссылка: YouTube, VK, Яндекс.Диск и т.д."
@@ -206,6 +210,13 @@ ScreenManager:
                     padding: "10dp"
                     spacing: "15dp"
                     adaptive_height: True
+
+                    MDLabel:
+                        id: lab_goal
+                        adaptive_height: True
+                        theme_text_color: "Primary"
+                        font_style: "Subtitle1"
+                        halign: "center"
 
                     MDLabel:
                         text: "Видео материалы:"
@@ -250,7 +261,7 @@ ScreenManager:
 
 class LabApp(MDApp):
     current_subject = StringProperty("physics")
-    labs_data = DictProperty({})  # key: lab_name, value: dict(v1, v2, tools, qs, subject)
+    labs_data = DictProperty({})
     last_opened_subject = StringProperty("")
     last_opened_lab = StringProperty("")
     admin_mode = BooleanProperty(False)
@@ -258,7 +269,6 @@ class LabApp(MDApp):
     def build(self):
         self.theme_cls.primary_palette = "Indigo"
 
-        # --- Диалог входа администратора (исправлено) ---
         self.admin_dialog = MDDialog(
             title="Вход администратора",
             type="custom",
@@ -279,7 +289,6 @@ class LabApp(MDApp):
             ],
         )
 
-        # --- Диалог для импорта по URL ---
         self.url_dialog = MDDialog(
             title="Импорт по ссылке",
             type="custom",
@@ -298,19 +307,16 @@ class LabApp(MDApp):
             ],
         )
 
-        # --- Файловый менеджер ---
         self.file_manager = MDFileManager(
             exit_manager=self.exit_manager_callback,
             select_path=self.select_path_callback,
         )
-        self.file_action = None  # "export" или "import_file"
+        self.file_action = None
 
         root = Builder.load_string(KV)
-        # После загрузки интерфейса обновляем списки (если данные уже есть)
         Clock.schedule_once(lambda dt: self.refresh_lists())
         return root
 
-    # --- Удобный метод для снекбаров ---
     def show_snackbar(self, text):
         snackbar = MDSnackbar()
         snackbar.text = text
@@ -327,9 +333,7 @@ class LabApp(MDApp):
             self.current_subject = self.last_opened_subject
             self.open_lab(self.last_opened_lab)
 
-    # --- Админ-доступ (исправлена ошибка) ---
     def show_admin_login(self):
-        # Сбрасываем состояние ошибки перед каждым открытием
         self.admin_dialog.content_cls.text = ""
         self.admin_dialog.content_cls.error = False
         self.admin_dialog.content_cls.helper_text = ""
@@ -357,13 +361,13 @@ class LabApp(MDApp):
         else:
             self.show_snackbar("Требуются права администратора")
 
-    # --- Работа с данными (учёт предмета) ---
     def add_new_lab(self):
         if not self.admin_mode:
             self.show_snackbar("Требуются права администратора")
             return
 
         name = self.root.ids.new_name.text.strip()
+        goal = self.root.ids.new_goal.text.strip()
         v1 = self.root.ids.new_video1.text.strip()
         v2 = self.root.ids.new_video2.text.strip()
         tools = self.root.ids.new_tools.text.strip()
@@ -376,21 +380,20 @@ class LabApp(MDApp):
             self.show_snackbar("Укажите ссылку на первое видео (обязательно)!")
             return
 
-        # Сохраняем с указанием предмета
         self.labs_data[name] = {
             "v1": v1,
             "v2": v2,
             "tools": tools,
             "qs": qs,
-            "subject": self.current_subject,  # <-- ключевое изменение
+            "goal": goal,
+            "subject": self.current_subject,
         }
 
         self.clear_fields()
         self.go_back_to_list()
-        self.refresh_lists()  # обновить оба списка
+        self.refresh_lists()
 
     def refresh_lists(self):
-        """Очищает и заново заполняет списки лабораторных согласно subject."""
         physics_list = self.root.ids.physics_container
         chemistry_list = self.root.ids.chemistry_container
         physics_list.clear_widgets()
@@ -408,11 +411,18 @@ class LabApp(MDApp):
     def open_lab(self, lab_name):
         data = self.labs_data.get(lab_name, {})
         self.root.ids.details_title.title = lab_name
+
+        goal = data.get('goal', '')
+        if goal:
+            self.root.ids.lab_goal.text = f"Цель: {goal}"
+        else:
+            self.root.ids.lab_goal.text = "Цель не указана"
+
         self.root.ids.lab_tools.text = data.get('tools', '')
         self.root.ids.lab_qs.text = data.get('qs', '')
         self.last_opened_lab = lab_name
         self.last_opened_subject = data.get("subject", self.current_subject)
-        self.current_subject = self.last_opened_subject  # синхронизируем
+        self.current_subject = self.last_opened_subject
         self.root.current = "lab_details"
 
     def open_video_in_browser(self, url):
@@ -426,22 +436,19 @@ class LabApp(MDApp):
         self.root.current = target
 
     def clear_fields(self):
-        for f in ["new_name", "new_video1", "new_video2", "new_tools", "new_questions"]:
+        for f in ["new_name", "new_goal", "new_video1", "new_video2", "new_tools", "new_questions"]:
             self.root.ids[f].text = ""
 
     # ========== ЭКСПОРТ / ИМПОРТ ==========
     def export_data(self):
-        """Экспорт данных в JSON: открываем выбор папки."""
         self.file_action = "export"
-        self.file_manager.show(os.path.expanduser("~"))  # начальная директория
+        self.file_manager.show(os.path.expanduser("~"))
 
     def import_from_file(self):
-        """Импорт данных из локального файла: открываем выбор файла."""
         self.file_action = "import_file"
         self.file_manager.show(os.path.expanduser("~"))
 
     def show_import_url_dialog(self):
-        """Показать диалог ввода URL для импорта."""
         self.url_dialog.content_cls.text = ""
         self.url_dialog.open()
 
@@ -466,17 +473,15 @@ class LabApp(MDApp):
             data = json.loads(raw_data)
             if not isinstance(data, dict):
                 raise ValueError("Некорректный формат данных")
-            # Вызов в главном потоке с корректной передачей данных
+            # Сохраняем ошибку вне лямбды
             Clock.schedule_once(lambda dt, d=data: self.merge_imported_data(d))
         except Exception as exc:
-            err_msg = str(exc)  # сохраняем строку ошибки
+            err_msg = str(exc)
             Clock.schedule_once(lambda dt, msg=err_msg: self.show_snackbar(f"Ошибка импорта: {msg}"))
 
     def merge_imported_data(self, imported_data):
-        """Объединяет импортированные данные с текущими и обновляет списки."""
         for name, info in imported_data.items():
             if isinstance(info, dict) and "v1" in info:
-                # Если предмет не указан, оставляем как есть или ставим physics
                 if "subject" not in info:
                     info["subject"] = "physics"
                 self.labs_data[name] = info
@@ -485,14 +490,11 @@ class LabApp(MDApp):
         self.refresh_lists()
         self.show_snackbar("Импорт завершён")
 
-    # --- Обработчики файлового менеджера ---
     def exit_manager_callback(self, *args):
-        """Выход из менеджера."""
         self.file_action = None
         self.file_manager.close()
 
     def select_path_callback(self, path):
-        """Обработка выбранного пути."""
         if self.file_action == "export":
             self._do_export(path)
         elif self.file_action == "import_file":
@@ -501,7 +503,6 @@ class LabApp(MDApp):
         self.file_action = None
 
     def _do_export(self, folder_path):
-        """Сохраняет labs_data.json в выбранную папку."""
         file_path = os.path.join(folder_path, "labs_data.json")
         try:
             with open(file_path, "w", encoding="utf-8") as f:
@@ -511,7 +512,6 @@ class LabApp(MDApp):
             self.show_snackbar(f"Ошибка сохранения: {e}")
 
     def _do_import_file(self, file_path):
-        """Загружает данные из выбранного JSON-файла."""
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -524,4 +524,3 @@ class LabApp(MDApp):
 
 if __name__ == "__main__":
     LabApp().run()
-

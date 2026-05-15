@@ -1,11 +1,13 @@
 from kivymd.app import MDApp
 from kivy.lang import Builder
+from kivy.core.window import Window
 from kivymd.uix.list import OneLineListItem
 from kivy.properties import StringProperty, DictProperty, BooleanProperty
 from kivymd.uix.snackbar import MDSnackbar
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.textfield import MDTextField
-from kivymd.uix.button import MDFlatButton
+from kivymd.uix.button import MDRaisedButton, MDFlatButton, MDIconButton  # ← добавлен MDRaisedButton
+from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.filemanager import MDFileManager
 from kivy.clock import Clock
 import webbrowser
@@ -128,12 +130,18 @@ ScreenManager:
             MDTopAppBar:
                 title: "Физика"
                 left_action_items: [["arrow-left", lambda x: app.go_to_menu()]]
+            MDRaisedButton:
+                text: "Методички"
+                size_hint_x: 0.8
+                pos_hint: {"center_x": .5}
+                on_release: app.go_to_manuals()
             ScrollView:
                 MDList:
                     id: physics_container
             MDFloatingActionButton:
                 icon: "plus"
                 pos_hint: {"center_x": .9, "center_y": .1}
+                opacity: 1 if app.admin_mode else 0
                 disabled: not app.admin_mode
                 on_release: app.go_to_add_lab()
 
@@ -144,12 +152,18 @@ ScreenManager:
             MDTopAppBar:
                 title: "Химия"
                 left_action_items: [["arrow-left", lambda x: app.go_to_menu()]]
+            MDRaisedButton:
+                text: "Методички"
+                size_hint_x: 0.8
+                pos_hint: {"center_x": .5}
+                on_release: app.go_to_manuals()
             ScrollView:
                 MDList:
                     id: chemistry_container
             MDFloatingActionButton:
                 icon: "plus"
                 pos_hint: {"center_x": .9, "center_y": .1}
+                opacity: 1 if app.admin_mode else 0
                 disabled: not app.admin_mode
                 on_release: app.go_to_add_lab()
 
@@ -164,7 +178,7 @@ ScreenManager:
                 MDBoxLayout:
                     orientation: "vertical"
                     padding: "20dp"
-                    spacing: "10dp"
+                    spacing: "15dp"
                     adaptive_height: True
                     MDTextField:
                         id: new_name
@@ -208,67 +222,130 @@ ScreenManager:
                 MDBoxLayout:
                     orientation: "vertical"
                     padding: "10dp"
-                    spacing: "15dp"
+                    spacing: "12dp"
                     adaptive_height: True
 
                     MDLabel:
-                        id: lab_goal
+                        text: "Цель: " + app.detail_goal
                         adaptive_height: True
+                        size_hint_y: None
+                        height: self.texture_size[1] if app.detail_goal else 0
+                        opacity: 1 if app.detail_goal else 0
+                        disabled: not bool(app.detail_goal)
                         theme_text_color: "Primary"
                         font_style: "Subtitle1"
                         halign: "center"
 
+                    MDSeparator:
+
                     MDLabel:
                         text: "Видео материалы:"
                         font_style: "H6"
+                        bold: True
+                        size_hint_y: None
+                        height: self.texture_size[1]
 
                     MDRaisedButton:
-                        id: btn_video1
                         text: "Смотреть видео 1"
                         size_hint_x: 0.8
+                        size_hint_y: None
+                        height: "48dp"
                         pos_hint: {"center_x": .5}
-                        on_release: app.open_video_in_browser(app.labs_data.get(details_title.title, {}).get('v1', ''))
-                        disabled: not app.labs_data.get(details_title.title, {}).get('v1', '')
+                        on_release: app.open_video_in_browser(app.detail_video1)
+                        disabled: not bool(app.detail_video1)
+
                     MDRaisedButton:
-                        id: btn_video2
                         text: "Смотреть видео 2"
                         size_hint_x: 0.8
+                        size_hint_y: None
+                        height: "48dp"
                         pos_hint: {"center_x": .5}
-                        on_release: app.open_video_in_browser(app.labs_data.get(details_title.title, {}).get('v2', ''))
-                        disabled: not app.labs_data.get(details_title.title, {}).get('v2', '')
+                        on_release: app.open_video_in_browser(app.detail_video2)
+                        disabled: not bool(app.detail_video2)
 
                     MDSeparator:
-
+                        opacity: 1 if app.detail_tools else 0
+                        size_hint_y: None
+                        height: "2dp" if app.detail_tools else 0
                     MDLabel:
                         text: "Необходимые инструменты:"
                         font_style: "Subtitle1"
                         theme_text_color: "Primary"
+                        bold: True
+                        size_hint_y: None
+                        height: self.texture_size[1] if app.detail_tools else 0
+                        opacity: 1 if app.detail_tools else 0
+                        disabled: not bool(app.detail_tools)
                     MDLabel:
-                        id: lab_tools
+                        text: app.detail_tools
                         adaptive_height: True
+                        size_hint_y: None
+                        height: self.texture_size[1] if app.detail_tools else 0
+                        opacity: 1 if app.detail_tools else 0
+                        disabled: not bool(app.detail_tools)
 
                     MDSeparator:
-
+                        opacity: 1 if app.detail_questions else 0
+                        size_hint_y: None
+                        height: "2dp" if app.detail_questions else 0
                     MDLabel:
                         text: "Контрольные вопросы:"
                         font_style: "Subtitle1"
                         theme_text_color: "Primary"
+                        bold: True
+                        size_hint_y: None
+                        height: self.texture_size[1] if app.detail_questions else 0
+                        opacity: 1 if app.detail_questions else 0
+                        disabled: not bool(app.detail_questions)
                     MDLabel:
-                        id: lab_qs
+                        text: app.detail_questions
                         adaptive_height: True
+                        size_hint_y: None
+                        height: self.texture_size[1] if app.detail_questions else 0
+                        opacity: 1 if app.detail_questions else 0
+                        disabled: not bool(app.detail_questions)
+
+    MDScreen:
+        name: "manuals"
+        MDBoxLayout:
+            orientation: "vertical"
+            MDTopAppBar:
+                title: "Методички - " + ("Физика" if app.current_subject == "physics" else "Химия")
+                left_action_items: [["arrow-left", lambda x: app.go_back_to_list()]]
+            ScrollView:
+                MDList:
+                    id: manuals_container
+            MDFloatingActionButton:
+                icon: "plus"
+                pos_hint: {"center_x": .9, "center_y": .1}
+                opacity: 1 if app.admin_mode else 0
+                disabled: not app.admin_mode
+                on_release: app.show_add_manual_dialog()
 '''
 
 
 class LabApp(MDApp):
     current_subject = StringProperty("physics")
     labs_data = DictProperty({})
+    manuals_data = DictProperty({})
     last_opened_subject = StringProperty("")
     last_opened_lab = StringProperty("")
     admin_mode = BooleanProperty(False)
 
+    detail_goal = StringProperty("")
+    detail_tools = StringProperty("")
+    detail_questions = StringProperty("")
+    detail_video1 = StringProperty("")
+    detail_video2 = StringProperty("")
+
     def build(self):
+        Window.minimum_width = 800
+        Window.minimum_height = 600
         self.theme_cls.primary_palette = "Indigo"
 
+        self.manuals_data = {"physics": [], "chemistry": []}
+
+        # Админский диалог
         self.admin_dialog = MDDialog(
             title="Вход администратора",
             type="custom",
@@ -278,34 +355,40 @@ class LabApp(MDApp):
                 id="admin_pass"
             ),
             buttons=[
-                MDFlatButton(
-                    text="Отмена",
-                    on_release=lambda x: self.admin_dialog.dismiss()
-                ),
-                MDFlatButton(
-                    text="Войти",
-                    on_release=lambda x: self.admin_login()
-                ),
+                MDFlatButton(text="Отмена", on_release=lambda x: self.admin_dialog.dismiss()),
+                MDFlatButton(text="Войти", on_release=lambda x: self.admin_login()),
             ],
         )
+        self.admin_dialog.content_cls.bind(on_text_validate=lambda instance: self.admin_login())
 
+        # Диалог импорта URL
         self.url_dialog = MDDialog(
             title="Импорт по ссылке",
             type="custom",
-            content_cls=MDTextField(
-                hint_text="Введите URL JSON-файла"
-            ),
+            content_cls=MDTextField(hint_text="Введите URL JSON-файла"),
             buttons=[
-                MDFlatButton(
-                    text="Отмена",
-                    on_release=lambda x: self.url_dialog.dismiss()
-                ),
-                MDFlatButton(
-                    text="Загрузить",
-                    on_release=lambda x: self.start_url_import()
-                ),
+                MDFlatButton(text="Отмена", on_release=lambda x: self.url_dialog.dismiss()),
+                MDFlatButton(text="Загрузить", on_release=lambda x: self.start_url_import()),
             ],
         )
+
+        # Диалог методички – поля создаются явно и сохраняются как атрибуты
+        manual_content = MDBoxLayout(orientation="vertical", spacing="10dp", adaptive_height=True)
+        self.manual_title_field = MDTextField(hint_text="Название")
+        self.manual_url_field = MDTextField(hint_text="Ссылка")
+        manual_content.add_widget(self.manual_title_field)
+        manual_content.add_widget(self.manual_url_field)
+
+        self.manual_dialog = MDDialog(
+            title="Добавить методичку",
+            type="custom",
+            content_cls=manual_content,
+            buttons=[
+                MDFlatButton(text="Отмена", on_release=lambda x: self.manual_dialog.dismiss()),
+                MDFlatButton(text="Сохранить", on_release=lambda x: self.save_manual()),
+            ],
+        )
+        self.editing_manual_index = None
 
         self.file_manager = MDFileManager(
             exit_manager=self.exit_manager_callback,
@@ -315,8 +398,10 @@ class LabApp(MDApp):
 
         root = Builder.load_string(KV)
         Clock.schedule_once(lambda dt: self.refresh_lists())
+        threading.Thread(target=self.startup_import, daemon=True).start()
         return root
 
+    # ---------- общие методы ----------
     def show_snackbar(self, text):
         snackbar = MDSnackbar()
         snackbar.text = text
@@ -333,6 +418,7 @@ class LabApp(MDApp):
             self.current_subject = self.last_opened_subject
             self.open_lab(self.last_opened_lab)
 
+    # ---------- админ ----------
     def show_admin_login(self):
         self.admin_dialog.content_cls.text = ""
         self.admin_dialog.content_cls.error = False
@@ -361,6 +447,7 @@ class LabApp(MDApp):
         else:
             self.show_snackbar("Требуются права администратора")
 
+    # ---------- лабораторные ----------
     def add_new_lab(self):
         if not self.admin_mode:
             self.show_snackbar("Требуются права администратора")
@@ -412,14 +499,12 @@ class LabApp(MDApp):
         data = self.labs_data.get(lab_name, {})
         self.root.ids.details_title.title = lab_name
 
-        goal = data.get('goal', '')
-        if goal:
-            self.root.ids.lab_goal.text = f"Цель: {goal}"
-        else:
-            self.root.ids.lab_goal.text = "Цель не указана"
+        self.detail_goal = data.get('goal', '')
+        self.detail_tools = data.get('tools', '')
+        self.detail_questions = data.get('qs', '')
+        self.detail_video1 = data.get('v1', '')
+        self.detail_video2 = data.get('v2', '')
 
-        self.root.ids.lab_tools.text = data.get('tools', '')
-        self.root.ids.lab_qs.text = data.get('qs', '')
         self.last_opened_lab = lab_name
         self.last_opened_subject = data.get("subject", self.current_subject)
         self.current_subject = self.last_opened_subject
@@ -439,7 +524,91 @@ class LabApp(MDApp):
         for f in ["new_name", "new_goal", "new_video1", "new_video2", "new_tools", "new_questions"]:
             self.root.ids[f].text = ""
 
-    # ========== ЭКСПОРТ / ИМПОРТ ==========
+    # ---------- методички ----------
+    def go_to_manuals(self):
+        self.refresh_manuals_list()
+        self.root.current = "manuals"
+
+    def refresh_manuals_list(self):
+        container = self.root.ids.manuals_container
+        container.clear_widgets()
+        manuals = self.manuals_data.get(self.current_subject, [])
+        for i, m in enumerate(manuals):
+            box = MDBoxLayout(
+                orientation="horizontal",
+                adaptive_height=True,
+                spacing="10dp",
+                padding="5dp"
+            )
+            btn = MDRaisedButton(
+                text=m["title"],
+                size_hint_x=0.7,
+                on_release=lambda x, url=m["url"]: self.open_video_in_browser(url)
+            )
+            box.add_widget(btn)
+            if self.admin_mode:
+                edit_btn = MDIconButton(
+                    icon="pencil",
+                    pos_hint={"center_y": .5},
+                    on_release=lambda x, idx=i: self.edit_manual(idx)
+                )
+                delete_btn = MDIconButton(
+                    icon="delete",
+                    pos_hint={"center_y": .5},
+                    on_release=lambda x, idx=i: self.delete_manual(idx)
+                )
+                box.add_widget(edit_btn)
+                box.add_widget(delete_btn)
+            container.add_widget(box)
+
+    def show_add_manual_dialog(self):
+        self.manual_title_field.text = ""
+        self.manual_url_field.text = ""
+        self.manual_dialog.title = "Добавить методичку"
+        self.manual_dialog.buttons[1].text = "Сохранить"
+        self.editing_manual_index = None
+        self.manual_dialog.open()
+
+    def edit_manual(self, index):
+        manuals = self.manuals_data.get(self.current_subject, [])
+        if 0 <= index < len(manuals):
+            m = manuals[index]
+            self.manual_title_field.text = m["title"]
+            self.manual_url_field.text = m["url"]
+            self.manual_dialog.title = "Редактировать методичку"
+            self.manual_dialog.buttons[1].text = "Обновить"
+            self.editing_manual_index = index
+            self.manual_dialog.open()
+
+    def save_manual(self):
+        title = self.manual_title_field.text.strip()
+        url = self.manual_url_field.text.strip()
+        if not title or not url:
+            self.show_snackbar("Заполните название и ссылку!")
+            return
+
+        subject = self.current_subject
+        if subject not in self.manuals_data:
+            self.manuals_data[subject] = []
+
+        if self.editing_manual_index is not None:
+            idx = self.editing_manual_index
+            if 0 <= idx < len(self.manuals_data[subject]):
+                self.manuals_data[subject][idx] = {"title": title, "url": url}
+        else:
+            self.manuals_data[subject].append({"title": title, "url": url})
+
+        self.manual_dialog.dismiss()
+        self.refresh_manuals_list()
+
+    def delete_manual(self, index):
+        subject = self.current_subject
+        if subject in self.manuals_data and 0 <= index < len(self.manuals_data[subject]):
+            del self.manuals_data[subject][index]
+            self.refresh_manuals_list()
+            self.show_snackbar("Методичка удалена")
+
+    # ---------- экспорт/импорт ----------
     def export_data(self):
         self.file_action = "export"
         self.file_manager.show(os.path.expanduser("~"))
@@ -457,11 +626,8 @@ class LabApp(MDApp):
         if not url:
             self.show_snackbar("Введите ссылку")
             return
-
-        # Автопреобразование GitHub-ссылок в raw
         if "github.com" in url and "/blob/" in url:
             url = url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
-
         self.url_dialog.dismiss()
         threading.Thread(target=self.download_and_import, args=(url,), daemon=True).start()
 
@@ -471,24 +637,46 @@ class LabApp(MDApp):
             with urlopen(req, timeout=15) as response:
                 raw_data = response.read().decode('utf-8')
             data = json.loads(raw_data)
-            if not isinstance(data, dict):
-                raise ValueError("Некорректный формат данных")
-            # Сохраняем ошибку вне лямбды
-            Clock.schedule_once(lambda dt, d=data: self.merge_imported_data(d))
+            Clock.schedule_once(lambda dt, d=data: self.process_imported_data(d))
         except Exception as exc:
             err_msg = str(exc)
             Clock.schedule_once(lambda dt, msg=err_msg: self.show_snackbar(f"Ошибка импорта: {msg}"))
 
-    def merge_imported_data(self, imported_data):
-        for name, info in imported_data.items():
+    def process_imported_data(self, data):
+        if isinstance(data, dict):
+            if "labs" in data:
+                self.merge_imported_labs(data["labs"])
+            if "manuals" in data:
+                self.manuals_data = data["manuals"]
+            if "labs" not in data and "manuals" not in data:
+                self.merge_imported_labs(data)
+        self.refresh_lists()
+        self.refresh_manuals_list()
+        self.show_snackbar("Импорт завершён")
+
+    def merge_imported_labs(self, labs):
+        for name, info in labs.items():
             if isinstance(info, dict) and "v1" in info:
                 if "subject" not in info:
                     info["subject"] = "physics"
                 self.labs_data[name] = info
+
+    def startup_import(self):
+        url = "https://github.com/vinpap2008S/FizoksProgect/blob/master/labs_data.json"
+        if "github.com" in url and "/blob/" in url:
+            url = url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
+        try:
+            req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urlopen(req, timeout=15) as response:
+                raw_data = response.read().decode('utf-8')
+            data = json.loads(raw_data)
+            if isinstance(data, dict):
+                Clock.schedule_once(lambda dt, d=data: self.process_imported_data(d))
             else:
-                self.show_snackbar(f"Пропущена запись '{name}': неверный формат")
-        self.refresh_lists()
-        self.show_snackbar("Импорт завершён")
+                Clock.schedule_once(lambda dt: self.show_snackbar("Автоимпорт: некорректные данные"))
+        except Exception as exc:
+            err_msg = str(exc)
+            Clock.schedule_once(lambda dt, msg=err_msg: self.show_snackbar(f"Ошибка автоимпорта: {msg}"))
 
     def exit_manager_callback(self, *args):
         self.file_action = None
@@ -505,8 +693,12 @@ class LabApp(MDApp):
     def _do_export(self, folder_path):
         file_path = os.path.join(folder_path, "labs_data.json")
         try:
+            export_data = {
+                "labs": dict(self.labs_data),
+                "manuals": dict(self.manuals_data)
+            }
             with open(file_path, "w", encoding="utf-8") as f:
-                json.dump(dict(self.labs_data), f, ensure_ascii=False, indent=2)
+                json.dump(export_data, f, ensure_ascii=False, indent=2)
             self.show_snackbar(f"Данные сохранены: {file_path}")
         except Exception as e:
             self.show_snackbar(f"Ошибка сохранения: {e}")
@@ -515,9 +707,7 @@ class LabApp(MDApp):
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            if not isinstance(data, dict):
-                raise ValueError("Файл должен содержать объект JSON")
-            self.merge_imported_data(data)
+            self.process_imported_data(data)
         except Exception as e:
             self.show_snackbar(f"Ошибка чтения файла: {e}")
 

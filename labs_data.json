@@ -1,9 +1,20 @@
 {
-  "Лабораторная работа №1": {
-    "v1": "https://disk.yandex.ru/client/disk/ПРОЕКТ%20ФИЗИКА%20МАИ?idApp=client&dialog=slider&idDialog=%2Fdisk%2FПРОЕКТ%20ФИЗИКА%20МАИ%2Fvideo_13499207475042.mp4",
-    "v2": "",
-    "tools": "",
-    "qs": "",
-    "subject": "physics"
+  "labs": {
+    "Лабораторная работа №1": {
+      "v1": "https://disk.yandex.ru/client/disk/ПРОЕКТ%20ФИЗИКА%20МАИ?idApp=client&dialog=slider&idDialog=%2Fdisk%2FПРОЕКТ%20ФИЗИКА%20МАИ%2Fvideo_13499207475042.mp4",
+      "v2": "",
+      "tools": "",
+      "qs": "",
+      "subject": "physics"
+    }
+  },
+  "manuals": {
+    "physics": [
+      {
+        "title": "ASDSADSD",
+        "url": "http://kaf801.ru/files.php"
+      }
+    ],
+    "chemistry": []
   }
 }

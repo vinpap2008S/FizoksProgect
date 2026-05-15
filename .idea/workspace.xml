@@ -4,8 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="209a5773-15e5-4124-a194-dc17d1752c8b" name="Changes" comment="Исправлено считывание">
+    <list default="true" id="209a5773-15e5-4124-a194-dc17d1752c8b" name="Changes" comment="Добавили цель для лаб и дерикторию для видео">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/labs_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/labs_data.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -125,7 +126,15 @@
       <option name="project" value="LOCAL" />
       <updated>1778700139174</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="Добавили цель для лаб и дерикторию для видео">
+      <option name="closed" value="true" />
+      <created>1778750821349</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1778750821349</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -133,6 +142,7 @@
     <MESSAGE value="проект" />
     <MESSAGE value="Добавлена база данных" />
     <MESSAGE value="Исправлено считывание" />
-    <option name="LAST_COMMIT_MESSAGE" value="Исправлено считывание" />
+    <MESSAGE value="Добавили цель для лаб и дерикторию для видео" />
+    <option name="LAST_COMMIT_MESSAGE" value="Добавили цель для лаб и дерикторию для видео" />
   </component>
 </project>

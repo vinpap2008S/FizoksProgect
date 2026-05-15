@@ -3,10 +3,9 @@ from kivy.lang import Builder
 from kivy.core.window import Window
 from kivymd.uix.list import OneLineListItem
 from kivy.properties import StringProperty, DictProperty, BooleanProperty
-from kivymd.uix.snackbar import MDSnackbar
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.textfield import MDTextField
-from kivymd.uix.button import MDRaisedButton, MDFlatButton, MDIconButton  # ← добавлен MDRaisedButton
+from kivymd.uix.button import MDRaisedButton, MDFlatButton, MDIconButton
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.filemanager import MDFileManager
 from kivy.clock import Clock
@@ -345,7 +344,6 @@ class LabApp(MDApp):
 
         self.manuals_data = {"physics": [], "chemistry": []}
 
-        # Админский диалог
         self.admin_dialog = MDDialog(
             title="Вход администратора",
             type="custom",
@@ -361,7 +359,6 @@ class LabApp(MDApp):
         )
         self.admin_dialog.content_cls.bind(on_text_validate=lambda instance: self.admin_login())
 
-        # Диалог импорта URL
         self.url_dialog = MDDialog(
             title="Импорт по ссылке",
             type="custom",
@@ -372,7 +369,6 @@ class LabApp(MDApp):
             ],
         )
 
-        # Диалог методички – поля создаются явно и сохраняются как атрибуты
         manual_content = MDBoxLayout(orientation="vertical", spacing="10dp", adaptive_height=True)
         self.manual_title_field = MDTextField(hint_text="Название")
         self.manual_url_field = MDTextField(hint_text="Ссылка")
@@ -398,15 +394,10 @@ class LabApp(MDApp):
 
         root = Builder.load_string(KV)
         Clock.schedule_once(lambda dt: self.refresh_lists())
-        threading.Thread(target=self.startup_import, daemon=True).start()
+        Clock.schedule_once(lambda dt: threading.Thread(target=self.startup_import, daemon=True).start(), 0.5)
         return root
 
-    # ---------- общие методы ----------
-    def show_snackbar(self, text):
-        snackbar = MDSnackbar()
-        snackbar.text = text
-        snackbar.open()
-
+    # Административные методы
     def go_to_menu(self):
         self.root.current = "menu"
 
@@ -418,7 +409,6 @@ class LabApp(MDApp):
             self.current_subject = self.last_opened_subject
             self.open_lab(self.last_opened_lab)
 
-    # ---------- админ ----------
     def show_admin_login(self):
         self.admin_dialog.content_cls.text = ""
         self.admin_dialog.content_cls.error = False
@@ -430,27 +420,22 @@ class LabApp(MDApp):
         if password == "admin123":
             self.admin_mode = True
             self.admin_dialog.dismiss()
-            self.show_snackbar("Вы вошли как администратор")
         else:
             self.admin_dialog.content_cls.error = True
             self.admin_dialog.content_cls.helper_text = "Неверный пароль"
 
     def admin_logout(self):
         self.admin_mode = False
-        self.show_snackbar("Вы вышли из режима администратора")
         if self.root.current == "add_lab":
             self.go_back_to_list()
 
     def go_to_add_lab(self):
         if self.admin_mode:
             self.root.current = "add_lab"
-        else:
-            self.show_snackbar("Требуются права администратора")
 
-    # ---------- лабораторные ----------
+    # Работа с лабораторными
     def add_new_lab(self):
         if not self.admin_mode:
-            self.show_snackbar("Требуются права администратора")
             return
 
         name = self.root.ids.new_name.text.strip()
@@ -460,11 +445,7 @@ class LabApp(MDApp):
         tools = self.root.ids.new_tools.text.strip()
         qs = self.root.ids.new_questions.text.strip()
 
-        if not name:
-            self.show_snackbar("Введите название лабораторной!")
-            return
-        if not v1:
-            self.show_snackbar("Укажите ссылку на первое видео (обязательно)!")
+        if not name or not v1:
             return
 
         self.labs_data[name] = {
@@ -513,8 +494,6 @@ class LabApp(MDApp):
     def open_video_in_browser(self, url):
         if url:
             webbrowser.open(url)
-        else:
-            self.show_snackbar("Ссылка отсутствует!")
 
     def go_back_to_list(self):
         target = "physics_list" if self.current_subject == "physics" else "chemistry_list"
@@ -524,7 +503,7 @@ class LabApp(MDApp):
         for f in ["new_name", "new_goal", "new_video1", "new_video2", "new_tools", "new_questions"]:
             self.root.ids[f].text = ""
 
-    # ---------- методички ----------
+    # Методички
     def go_to_manuals(self):
         self.refresh_manuals_list()
         self.root.current = "manuals"
@@ -584,7 +563,6 @@ class LabApp(MDApp):
         title = self.manual_title_field.text.strip()
         url = self.manual_url_field.text.strip()
         if not title or not url:
-            self.show_snackbar("Заполните название и ссылку!")
             return
 
         subject = self.current_subject
@@ -606,9 +584,8 @@ class LabApp(MDApp):
         if subject in self.manuals_data and 0 <= index < len(self.manuals_data[subject]):
             del self.manuals_data[subject][index]
             self.refresh_manuals_list()
-            self.show_snackbar("Методичка удалена")
 
-    # ---------- экспорт/импорт ----------
+    # Экспорт/импорт
     def export_data(self):
         self.file_action = "export"
         self.file_manager.show(os.path.expanduser("~"))
@@ -624,7 +601,6 @@ class LabApp(MDApp):
     def start_url_import(self):
         url = self.url_dialog.content_cls.text.strip()
         if not url:
-            self.show_snackbar("Введите ссылку")
             return
         if "github.com" in url and "/blob/" in url:
             url = url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
@@ -638,9 +614,8 @@ class LabApp(MDApp):
                 raw_data = response.read().decode('utf-8')
             data = json.loads(raw_data)
             Clock.schedule_once(lambda dt, d=data: self.process_imported_data(d))
-        except Exception as exc:
-            err_msg = str(exc)
-            Clock.schedule_once(lambda dt, msg=err_msg: self.show_snackbar(f"Ошибка импорта: {msg}"))
+        except Exception:
+            pass  # silently ignore errors
 
     def process_imported_data(self, data):
         if isinstance(data, dict):
@@ -652,7 +627,6 @@ class LabApp(MDApp):
                 self.merge_imported_labs(data)
         self.refresh_lists()
         self.refresh_manuals_list()
-        self.show_snackbar("Импорт завершён")
 
     def merge_imported_labs(self, labs):
         for name, info in labs.items():
@@ -672,11 +646,8 @@ class LabApp(MDApp):
             data = json.loads(raw_data)
             if isinstance(data, dict):
                 Clock.schedule_once(lambda dt, d=data: self.process_imported_data(d))
-            else:
-                Clock.schedule_once(lambda dt: self.show_snackbar("Автоимпорт: некорректные данные"))
-        except Exception as exc:
-            err_msg = str(exc)
-            Clock.schedule_once(lambda dt, msg=err_msg: self.show_snackbar(f"Ошибка автоимпорта: {msg}"))
+        except Exception:
+            pass
 
     def exit_manager_callback(self, *args):
         self.file_action = None
@@ -699,17 +670,16 @@ class LabApp(MDApp):
             }
             with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(export_data, f, ensure_ascii=False, indent=2)
-            self.show_snackbar(f"Данные сохранены: {file_path}")
-        except Exception as e:
-            self.show_snackbar(f"Ошибка сохранения: {e}")
+        except Exception:
+            pass
 
     def _do_import_file(self, file_path):
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             self.process_imported_data(data)
-        except Exception as e:
-            self.show_snackbar(f"Ошибка чтения файла: {e}")
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":

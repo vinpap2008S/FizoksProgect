@@ -15,7 +15,11 @@ import webbrowser
 import json
 import os
 import threading
+import re
 from urllib.request import urlopen, Request
+
+# Глобальная переменная для включения/отключения режима администратора
+ADMIN_MODE = True  # Измените на False, чтобы отключить админ-режим
 
 KV = '''
 ScreenManager:
@@ -67,6 +71,7 @@ ScreenManager:
                 halign: "center"
             MDRaisedButton:
                 text: app.last_opened_lab if app.last_opened_lab else ""
+                icon: "history"
                 size_hint_x: 0.8
                 pos_hint: {"center_x": .5}
                 on_release: root.continue_last_lab()
@@ -78,11 +83,13 @@ ScreenManager:
                 spacing: "20dp"
                 MDRaisedButton:
                     text: "ФИЗИКА"
+                    icon: "atom"
                     size_hint: (0.8, None)
                     pos_hint: {"center_x": .5}
                     on_release: app.go_to_subject("physics")
                 MDRaisedButton:
                     text: "ХИМИЯ"
+                    icon: "flask-variant"
                     size_hint: (0.8, None)
                     pos_hint: {"center_x": .5}
                     on_release: app.go_to_subject("chemistry")
@@ -99,48 +106,65 @@ ScreenManager:
         MDTopAppBar:
             title: "Настройки"
             left_action_items: [["arrow-left", lambda x: app.go_to_menu()]]
-        MDBoxLayout:
-            orientation: "vertical"
-            padding: "20dp"
-            spacing: "20dp"
-            MDBoxLayout:
-                adaptive_height: True
-                MDLabel:
-                    text: "Тёмная тема"
-                MDSwitch:
-                    id: theme_switch
-                    active: app.theme_cls.theme_style == "Dark"
-                    on_active: app.toggle_theme(self.active)
+        ScrollView:
             MDBoxLayout:
                 orientation: "vertical"
+                padding: "20dp"
+                spacing: "25dp"
                 adaptive_height: True
-                spacing: "10dp"
+
+                # Тёмная тема (в самом верху)
+                MDBoxLayout:
+                    adaptive_height: True
+                    spacing: "10dp"
+                    MDIcon:
+                        icon: "theme-light-dark"
+                        size_hint: None, None
+                        size: "30dp", "30dp"
+                        pos_hint: {"center_y": .5}
+                    MDLabel:
+                        text: "Тёмная тема"
+                        font_style: "Subtitle1"
+                    MDSwitch:
+                        id: theme_switch
+                        active: app.theme_cls.theme_style == "Dark"
+                        on_active: app.toggle_theme(self.active)
+
+                MDSeparator:
+
+                # Информация о разработчиках и полезные ссылки
                 MDLabel:
-                    text: "Администратор"
-                    font_style: "Subtitle1"
+                    text: "О приложении"
+                    font_style: "H6"
+                    halign: "center"
+
                 MDRaisedButton:
-                    text: "Выйти из админ-режима" if app.admin_mode else "Войти как администратор"
-                    on_release: app.admin_logout() if app.admin_mode else app.show_admin_login()
+                    text: "GitHub проекта"
+                    icon: "github"
+                    size_hint_x: 0.8
+                    pos_hint: {"center_x": .5}
+                    on_release: app.open_url("https://github.com/vinpap2008S/FizoksProgect")
 
-            MDSeparator:
-                height: "2dp"
+                MDRaisedButton:
+                    text: "Автор: vinpap2008S"
+                    icon: "account"
+                    size_hint_x: 0.8
+                    pos_hint: {"center_x": .5}
+                    on_release: app.open_url("https://github.com/vinpap2008S")
 
-            MDLabel:
-                text: "Данные лабораторных"
-                font_style: "Subtitle1"
-                halign: "center"
-            MDRaisedButton:
-                text: "Экспорт данных"
-                pos_hint: {"center_x": .5}
-                on_release: app.export_data()
-            MDRaisedButton:
-                text: "Импорт из файла"
-                pos_hint: {"center_x": .5}
-                on_release: app.import_from_file()
-            MDRaisedButton:
-                text: "Импорт по ссылке"
-                pos_hint: {"center_x": .5}
-                on_release: app.show_import_url_dialog()
+                MDRaisedButton:
+                    text: "Проверить обновления"
+                    icon: "update"
+                    size_hint_x: 0.8
+                    pos_hint: {"center_x": .5}
+                    on_release: app.open_url("https://github.com/vinpap2008S/FizoksProgect/releases")
+
+                MDRaisedButton:
+                    text: "Сообщить об ошибке"
+                    icon: "bug"
+                    size_hint_x: 0.8
+                    pos_hint: {"center_x": .5}
+                    on_release: app.open_url("https://github.com/vinpap2008S/FizoksProgect/issues")
 
 
 <SubjectListScreen>:
@@ -151,6 +175,7 @@ ScreenManager:
             left_action_items: [["arrow-left", lambda x: app.go_to_menu()]]
         MDRaisedButton:
             text: "Методички"
+            icon: "book-open-page-variant"
             size_hint_x: 0.8
             pos_hint: {"center_x": .5}
             on_release: root.go_to_manuals()
@@ -187,13 +212,13 @@ ScreenManager:
                 MDTextField:
                     id: new_video1
                     hint_text: "Ссылка на видео 1 (обязательно)"
-                    helper_text: "Прямая ссылка на видеофайл"
+                    helper_text: "Прямая ссылка на видеофайл или страница видео"
                     helper_text_mode: "on_focus"
                     required: True
                 MDTextField:
                     id: new_video2
                     hint_text: "Ссылка на видео 2"
-                    helper_text: "Прямая ссылка на видеофайл"
+                    helper_text: "Прямая ссылка на видеофайл или страница видео"
                 MDTextField:
                     id: new_tools
                     hint_text: "Инструменты"
@@ -204,6 +229,7 @@ ScreenManager:
                     multiline: True
                 MDRaisedButton:
                     text: "СОХРАНИТЬ"
+                    icon: "content-save"
                     pos_hint: {"center_x": .5}
                     on_release: app.add_new_lab()
 
@@ -368,23 +394,25 @@ class LabDetailsScreen(MDScreen):
         container.clear_widgets()
         if not source:
             return
-        # YouTube — открываем в браузере
         if self._is_youtube(source):
-            btn = MDRaisedButton(
-                text=f"Открыть {label_text} в YouTube",
-                size_hint=(0.8, None),
-                height="48dp",
-                pos_hint={"center_x": .5},
-                on_release=lambda x: webbrowser.open(source)
-            )
-            container.add_widget(btn)
+            self._show_browser_button(container, source, label_text, "youtube")
             return
+        if "drive.google.com" in source:
+            direct_url = self._process_url(source)
+            self._try_stream_video(container, direct_url, label_text)
+            return
+        self._show_browser_button(container, source, label_text, "open-in-new")
 
-        # Для GitHub blob — автоматически raw, без лишнего кодирования
-        url = source
-        if "github.com" in url and "/blob/" in url:
-            url = url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
+    def _process_url(self, url):
+        if "pixeldrain.com/u/" in url:
+            url = url.replace("pixeldrain.com/u/", "pixeldrain.com/api/file/")
+        drive_match = re.search(r"drive\.google\.com/file/d/([a-zA-Z0-9_-]+)", url)
+        if drive_match:
+            file_id = drive_match.group(1)
+            url = f"https://drive.google.com/uc?export=download&id={file_id}"
+        return url
 
+    def _try_stream_video(self, container, url, label_text):
         player = VideoPlayer(
             source=url,
             state='play',
@@ -393,6 +421,23 @@ class LabDetailsScreen(MDScreen):
         )
         container.add_widget(player)
         self._current_player = player
+        Clock.schedule_once(lambda dt: self._check_player_state(player, container, url, label_text), 3)
+
+    def _check_player_state(self, player, container, url, label_text):
+        if player.state == 'stop':
+            self._show_browser_button(container, url, label_text, "open-in-new")
+
+    def _show_browser_button(self, container, url, label_text, icon="open-in-new"):
+        container.clear_widgets()
+        btn = MDRaisedButton(
+            text=f"Открыть {label_text} в браузере",
+            icon=icon,
+            size_hint=(0.8, None),
+            height="48dp",
+            pos_hint={"center_x": .5},
+            on_release=lambda x: webbrowser.open(url)
+        )
+        container.add_widget(btn)
 
     def _is_youtube(self, url):
         return "youtube.com" in url or "youtu.be" in url
@@ -415,7 +460,8 @@ class LabApp(MDApp):
     manuals_data = DictProperty({})
     last_opened_subject = StringProperty("")
     last_opened_lab = StringProperty("")
-    admin_mode = BooleanProperty(False)
+    admin_mode = BooleanProperty(ADMIN_MODE)  # управляется глобальной переменной
+    video_user_agent = StringProperty("Mozilla/5.0")
 
     current_lab_name = StringProperty("")
     current_lab_goal = StringProperty("")
@@ -425,33 +471,13 @@ class LabApp(MDApp):
     current_lab_v2 = StringProperty("")
 
     def build(self):
-        Window.minimum_width = 800
-        Window.minimum_height = 600
+        Window.minimum_width = 320
+        Window.minimum_height = 480
         self.theme_cls.primary_palette = "Indigo"
 
         self.manuals_data = {"physics": [], "chemistry": []}
 
-        self.admin_dialog = MDDialog(
-            title="Вход администратора",
-            type="custom",
-            content_cls=MDTextField(hint_text="Пароль", password=True, id="admin_pass"),
-            buttons=[
-                MDFlatButton(text="Отмена", on_release=lambda x: self.admin_dialog.dismiss()),
-                MDFlatButton(text="Войти", on_release=lambda x: self.admin_login()),
-            ],
-        )
-        self.admin_dialog.content_cls.bind(on_text_validate=lambda instance: self.admin_login())
-
-        self.url_dialog = MDDialog(
-            title="Импорт по ссылке",
-            type="custom",
-            content_cls=MDTextField(hint_text="Введите URL JSON-файла"),
-            buttons=[
-                MDFlatButton(text="Отмена", on_release=lambda x: self.url_dialog.dismiss()),
-                MDFlatButton(text="Загрузить", on_release=lambda x: self.start_url_import()),
-            ],
-        )
-
+        # Диалог методички (оставлен для админа)
         manual_content = MDBoxLayout(orientation="vertical", spacing="10dp", adaptive_height=True)
         self.manual_title_field = MDTextField(hint_text="Название")
         self.manual_url_field = MDTextField(hint_text="Ссылка")
@@ -463,7 +489,7 @@ class LabApp(MDApp):
             content_cls=manual_content,
             buttons=[
                 MDFlatButton(text="Отмена", on_release=lambda x: self.manual_dialog.dismiss()),
-                MDFlatButton(text="Сохранить", on_release=lambda x: self.save_manual()),
+                MDFlatButton(text="Сохранить", icon="content-save", on_release=lambda x: self.save_manual()),
             ],
         )
         self.editing_manual_index = None
@@ -476,41 +502,35 @@ class LabApp(MDApp):
 
         root = Builder.load_string(KV)
         Clock.schedule_once(lambda dt: self.refresh_lists())
+        # Автоимпорт при старте
         Clock.schedule_once(lambda dt: threading.Thread(target=self.startup_import, daemon=True).start(), 0.5)
         return root
 
-    # Навигация
-    def go_to_menu(self): self.root.current = "menu"
+    # ---------- Навигация ----------
+    def go_to_menu(self):
+        self.root.current = "menu"
+
     def go_to_subject(self, subj):
         self.current_subject = subj
         self.root.current = f"{subj}_list"
-    def go_to_add_lab(self): self.root.current = "add_lab"
-    def go_back_to_list(self): self.root.current = f"{self.current_subject}_list"
-    def toggle_theme(self, v): self.theme_cls.theme_style = "Dark" if v else "Light"
 
-    # Администратор
-    def show_admin_login(self):
-        self.admin_dialog.content_cls.text = ""
-        self.admin_dialog.content_cls.error = False
-        self.admin_dialog.content_cls.helper_text = ""
-        self.admin_dialog.open()
+    def go_to_add_lab(self):
+        if self.admin_mode:
+            self.root.current = "add_lab"
 
-    def admin_login(self):
-        if self.admin_dialog.content_cls.text == "admin123":
-            self.admin_mode = True
-            self.admin_dialog.dismiss()
-        else:
-            self.admin_dialog.content_cls.error = True
-            self.admin_dialog.content_cls.helper_text = "Неверный пароль"
+    def go_back_to_list(self):
+        self.root.current = f"{self.current_subject}_list"
 
-    def admin_logout(self):
-        self.admin_mode = False
-        if self.root.current == "add_lab":
-            self.go_back_to_list()
+    def toggle_theme(self, value):
+        self.theme_cls.theme_style = "Dark" if value else "Light"
 
-    # Лабораторные
+    def open_url(self, url):
+        webbrowser.open(url)
+
+    # ---------- Лабораторные ----------
     def add_new_lab(self):
-        if not self.admin_mode: return
+        if not self.admin_mode:
+            return
         screen = self.root.get_screen("add_lab")
         name = screen.ids.new_name.text.strip()
         goal = screen.ids.new_goal.text.strip()
@@ -518,8 +538,13 @@ class LabApp(MDApp):
         v2 = screen.ids.new_video2.text.strip()
         tools = screen.ids.new_tools.text.strip()
         qs = screen.ids.new_questions.text.strip()
-        if not name or not v1: return
-        self.labs_data[name] = {"v1": v1, "v2": v2, "tools": tools, "qs": qs, "goal": goal, "subject": self.current_subject}
+        if not name or not v1:
+            return
+        self.labs_data[name] = {
+            "v1": v1, "v2": v2,
+            "tools": tools, "qs": qs,
+            "goal": goal, "subject": self.current_subject,
+        }
         self.clear_fields()
         self.go_back_to_list()
         self.refresh_lists()
@@ -553,7 +578,7 @@ class LabApp(MDApp):
         for fid in ("new_name", "new_goal", "new_video1", "new_video2", "new_tools", "new_questions"):
             screen.ids[fid].text = ""
 
-    # Методички
+    # ---------- Методички ----------
     def refresh_manuals_list(self):
         screen = self.root.get_screen("manuals")
         cont = screen.ids.manuals_container
@@ -561,7 +586,12 @@ class LabApp(MDApp):
         manuals = self.manuals_data.get(self.current_subject, [])
         for i, m in enumerate(manuals):
             box = MDBoxLayout(orientation="horizontal", adaptive_height=True, spacing="10dp", padding="5dp")
-            btn = MDRaisedButton(text=m["title"], size_hint_x=0.7, on_release=lambda x, url=m["url"]: webbrowser.open(url))
+            btn = MDRaisedButton(
+                text=m["title"],
+                icon="book-open-page-variant",
+                size_hint_x=0.7,
+                on_release=lambda x, url=m["url"]: webbrowser.open(url)
+            )
             box.add_widget(btn)
             if self.admin_mode:
                 box.add_widget(MDIconButton(icon="pencil", on_release=lambda x, idx=i: self.edit_manual(idx)))
@@ -569,6 +599,8 @@ class LabApp(MDApp):
             cont.add_widget(box)
 
     def show_add_manual_dialog(self):
+        if not self.admin_mode:
+            return
         self.manual_title_field.text = self.manual_url_field.text = ""
         self.manual_dialog.title = "Добавить методичку"
         self.manual_dialog.buttons[1].text = "Сохранить"
@@ -589,9 +621,11 @@ class LabApp(MDApp):
     def save_manual(self):
         title = self.manual_title_field.text.strip()
         url = self.manual_url_field.text.strip()
-        if not title or not url: return
+        if not title or not url:
+            return
         subj = self.current_subject
-        if subj not in self.manuals_data: self.manuals_data[subj] = []
+        if subj not in self.manuals_data:
+            self.manuals_data[subj] = []
         entry = {"title": title, "url": url}
         if self.editing_manual_index is not None:
             idx = self.editing_manual_index
@@ -608,49 +642,7 @@ class LabApp(MDApp):
             del self.manuals_data[subj][idx]
             self.refresh_manuals_list()
 
-    # Экспорт / импорт
-    def export_data(self):
-        self.file_action = "export"
-        self.file_manager.show(os.path.expanduser("~"))
-
-    def import_from_file(self):
-        self.file_action = "import_file"
-        self.file_manager.show(os.path.expanduser("~"))
-
-    def show_import_url_dialog(self):
-        self.url_dialog.content_cls.text = ""
-        self.url_dialog.open()
-
-    def start_url_import(self):
-        url = self.url_dialog.content_cls.text.strip()
-        if not url: return
-        if "github.com" in url and "/blob/" in url:
-            url = url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
-        self.url_dialog.dismiss()
-        threading.Thread(target=self.download_and_import, args=(url,), daemon=True).start()
-
-    def download_and_import(self, url):
-        try:
-            req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urlopen(req, timeout=15) as resp:
-                data = json.loads(resp.read().decode('utf-8'))
-            Clock.schedule_once(lambda dt, d=data: self.process_imported_data(d))
-        except Exception: pass
-
-    def process_imported_data(self, data):
-        if isinstance(data, dict):
-            if "labs" in data: self.merge_imported_labs(data["labs"])
-            if "manuals" in data: self.manuals_data = data["manuals"]
-            if "labs" not in data and "manuals" not in data: self.merge_imported_labs(data)
-        self.refresh_lists()
-        self.refresh_manuals_list()
-
-    def merge_imported_labs(self, labs):
-        for name, info in labs.items():
-            if isinstance(info, dict) and "v1" in info:
-                if "subject" not in info: info["subject"] = "physics"
-                self.labs_data[name] = info
-
+    # ---------- Импорт (без GUI-кнопок) ----------
     def startup_import(self):
         url = "https://github.com/vinpap2008S/FizoksProgect/blob/master/labs_data.json"
         if "github.com" in url and "/blob/" in url:
@@ -661,31 +653,34 @@ class LabApp(MDApp):
                 data = json.loads(resp.read().decode('utf-8'))
             if isinstance(data, dict):
                 Clock.schedule_once(lambda dt, d=data: self.process_imported_data(d))
-        except Exception: pass
+        except Exception:
+            pass
+
+    def process_imported_data(self, data):
+        if isinstance(data, dict):
+            if "labs" in data:
+                self.merge_imported_labs(data["labs"])
+            if "manuals" in data:
+                self.manuals_data = data["manuals"]
+            if "labs" not in data and "manuals" not in data:
+                self.merge_imported_labs(data)
+        self.refresh_lists()
+        self.refresh_manuals_list()
+
+    def merge_imported_labs(self, labs):
+        for name, info in labs.items():
+            if isinstance(info, dict) and "v1" in info:
+                if "subject" not in info:
+                    info["subject"] = "physics"
+                self.labs_data[name] = info
 
     def exit_manager_callback(self, *args):
         self.file_action = None
         self.file_manager.close()
 
     def select_path_callback(self, path):
-        if self.file_action == "export": self._do_export(path)
-        elif self.file_action == "import_file": self._do_import_file(path)
-        self.file_manager.close()
-        self.file_action = None
-
-    def _do_export(self, folder):
-        path = os.path.join(folder, "labs_data.json")
-        try:
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump({"labs": dict(self.labs_data), "manuals": dict(self.manuals_data)}, f, ensure_ascii=False, indent=2)
-        except Exception: pass
-
-    def _do_import_file(self, path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            self.process_imported_data(data)
-        except Exception: pass
+        # Оставлено для возможного будущего использования
+        pass
 
 
 if __name__ == "__main__":

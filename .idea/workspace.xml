@@ -4,9 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="209a5773-15e5-4124-a194-dc17d1752c8b" name="Changes" comment="Добавлена возможность добавления методичек">
+    <list default="true" id="209a5773-15e5-4124-a194-dc17d1752c8b" name="Changes" comment="исправлены ошибки">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -141,7 +140,15 @@
       <option name="project" value="LOCAL" />
       <updated>1778865737887</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="исправлены ошибки">
+      <option name="closed" value="true" />
+      <created>1778868060848</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1778868060848</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -151,6 +158,7 @@
     <MESSAGE value="Исправлено считывание" />
     <MESSAGE value="Добавили цель для лаб и дерикторию для видео" />
     <MESSAGE value="Добавлена возможность добавления методичек" />
-    <option name="LAST_COMMIT_MESSAGE" value="Добавлена возможность добавления методичек" />
+    <MESSAGE value="исправлены ошибки" />
+    <option name="LAST_COMMIT_MESSAGE" value="исправлены ошибки" />
   </component>
 </project>

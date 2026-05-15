@@ -2,9 +2,25 @@
   "labs": {
     "Лабораторная работа №1": {
       "v1": "https://disk.yandex.ru/client/disk/ПРОЕКТ%20ФИЗИКА%20МАИ?idApp=client&dialog=slider&idDialog=%2Fdisk%2FПРОЕКТ%20ФИЗИКА%20МАИ%2Fvideo_13499207475042.mp4",
-      "v2": "",
+      "v2": "https://files.catbox.moe/92pior.mp4",
       "tools": "",
       "qs": "",
+      "subject": "physics"
+    },
+    "sdasdasdsadas": {
+      "v1": "https://www.youtube.com/watch?v=63wXKSErWsQ",
+      "v2": "https://www.youtube.com/watch?v=63wXKSErWsQ",
+      "tools": "asdasdasdasdas",
+      "qs": "dasdadasd",
+      "goal": "dasdasdsdad",
+      "subject": "physics"
+    },
+    "ASD": {
+      "v1": "https://files.catbox.moe/jsfjre.mp4",
+      "v2": "https://drive.google.com/file/d/1qu9vt3N49swRk75IDPzXrX5_Xky-ewpz/view?usp=sharing",
+      "tools": "ASD",
+      "qs": "asd",
+      "goal": "asdas",
       "subject": "physics"
     }
   },

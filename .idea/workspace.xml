@@ -4,8 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="209a5773-15e5-4124-a194-dc17d1752c8b" name="Changes" comment="исправлены ошибки">
+    <list default="true" id="209a5773-15e5-4124-a194-dc17d1752c8b" name="Changes" comment="Добавлено 1 видео">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/labs_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/labs_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -52,6 +54,7 @@
       <recent name="C:\Users\User\Desktop\FizoksProgect\kivy_venv\Include" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\User\Desktop\FizoksProgect\videoroliki" />
       <recent name="C:\Users\User\Desktop\FizoksProgect\kivy_venv\fizik" />
     </key>
   </component>
@@ -148,7 +151,15 @@
       <option name="project" value="LOCAL" />
       <updated>1778868060848</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="Добавлено 1 видео">
+      <option name="closed" value="true" />
+      <created>1778870334470</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1778870334470</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -159,6 +170,7 @@
     <MESSAGE value="Добавили цель для лаб и дерикторию для видео" />
     <MESSAGE value="Добавлена возможность добавления методичек" />
     <MESSAGE value="исправлены ошибки" />
-    <option name="LAST_COMMIT_MESSAGE" value="исправлены ошибки" />
+    <MESSAGE value="Добавлено 1 видео" />
+    <option name="LAST_COMMIT_MESSAGE" value="Добавлено 1 видео" />
   </component>
 </project>

@@ -11,6 +11,7 @@ from kivymd.uix.button import MDRaisedButton, MDFlatButton, MDIconButton
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.filemanager import MDFileManager
 from kivy.clock import Clock
+from kivy.metrics import dp
 import webbrowser
 import json
 import os
@@ -56,6 +57,21 @@ ScreenManager:
 
         MDTopAppBar:
             title: "Лабораторные работы"
+
+        MDBoxLayout:
+            id: status_box
+            adaptive_height: True
+            size_hint_y: None
+            height: self.minimum_height if app.status_message else 0
+            opacity: 1 if app.status_message else 0
+            md_bg_color: app.theme_cls.primary_color
+            padding: "8dp"
+            MDLabel:
+                text: app.status_message
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+                halign: "center"
+                font_style: "Caption"
 
         MDBoxLayout:
             id: last_lab_box
@@ -113,7 +129,6 @@ ScreenManager:
                 spacing: "25dp"
                 adaptive_height: True
 
-                # Тёмная тема (в самом верху)
                 MDBoxLayout:
                     adaptive_height: True
                     spacing: "10dp"
@@ -132,7 +147,6 @@ ScreenManager:
 
                 MDSeparator:
 
-                # Информация о разработчиках и полезные ссылки
                 MDLabel:
                     text: "О приложении"
                     font_style: "H6"
@@ -259,38 +273,72 @@ ScreenManager:
                     font_style: "Subtitle1"
                     halign: "center"
 
+                # Разделитель перед видео 1
                 MDSeparator:
-
-                # Видео 1
-                MDLabel:
-                    text: "Видео 1:"
-                    font_style: "H6"
-                    bold: True
-                BoxLayout:
-                    id: video_container_1
+                    id: sep_before_v1
                     size_hint_y: None
-                    height: "250dp"
+                    height: "2dp"
+                    opacity: 1
 
+                # Блок видео 1
+                MDBoxLayout:
+                    id: video1_box
+                    orientation: "vertical"
+                    adaptive_height: True
+                    size_hint_y: None
+                    height: self.minimum_height if app.current_lab_v1 else 0
+                    opacity: 1 if app.current_lab_v1 else 0
+                    disabled: not bool(app.current_lab_v1)
+                    spacing: "5dp"
+
+                    MDLabel:
+                        id: video1_label
+                        text: "Видео 1:"
+                        font_style: "H6"
+                        bold: True
+                        size_hint_y: None
+                        height: self.texture_size[1] if app.current_lab_v1 else 0
+                    BoxLayout:
+                        id: video_container_1
+                        size_hint_y: None
+                        height: "250dp" if app.current_lab_v1 else 0
+
+                # Разделитель перед видео 2
                 MDSeparator:
-
-                # Видео 2 (скрывается, если нет ссылки)
-                MDLabel:
-                    id: video2_label
-                    text: "Видео 2:"
-                    font_style: "H6"
-                    bold: True
+                    id: sep_before_v2
                     size_hint_y: None
-                    height: self.texture_size[1] if app.current_lab_v2 else 0
+                    height: "2dp"
+                    opacity: 1
+
+                # Блок видео 2
+                MDBoxLayout:
+                    id: video2_box
+                    orientation: "vertical"
+                    adaptive_height: True
+                    size_hint_y: None
+                    height: self.minimum_height if app.current_lab_v2 else 0
                     opacity: 1 if app.current_lab_v2 else 0
                     disabled: not bool(app.current_lab_v2)
-                BoxLayout:
-                    id: video_container_2
-                    size_hint_y: None
-                    height: "250dp" if app.current_lab_v2 else 0
-                    opacity: 1 if app.current_lab_v2 else 0
-                    disabled: not bool(app.current_lab_v2)
+                    spacing: "5dp"
 
+                    MDLabel:
+                        id: video2_label
+                        text: "Видео 2:"
+                        font_style: "H6"
+                        bold: True
+                        size_hint_y: None
+                        height: self.texture_size[1] if app.current_lab_v2 else 0
+                    BoxLayout:
+                        id: video_container_2
+                        size_hint_y: None
+                        height: "250dp" if app.current_lab_v2 else 0
+
+                # Разделитель после видео (перед инструментами)
                 MDSeparator:
+                    id: sep_after_video
+                    size_hint_y: None
+                    height: "2dp"
+                    opacity: 1
 
                 # Инструменты
                 MDLabel:
@@ -380,6 +428,12 @@ class AddLabScreen(MDScreen):
 
 
 class LabDetailsScreen(MDScreen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._current_player = None
+        self._link_btn_v1 = None
+        self._link_btn_v2 = None
+
     def on_pre_enter(self, *args):
         app = MDApp.get_running_app()
         self.ids.lab_goal_label.text = "Цель: " + app.current_lab_goal if app.current_lab_goal else ""
@@ -387,21 +441,36 @@ class LabDetailsScreen(MDScreen):
         self.ids.lab_questions_label.text = app.current_lab_questions
         self.ids.details_title.title = app.current_lab_name
 
-        self._setup_video(self.ids.video_container_1, app.current_lab_v1, "Видео 1")
-        self._setup_video(self.ids.video_container_2, app.current_lab_v2, "Видео 2")
+        self._manage_visibility(app)
 
-    def _setup_video(self, container, source, label_text):
+        # Настройка видео с передачей video_box
+        self._setup_video(self.ids.video_container_1, app.current_lab_v1, "Видео 1", self.ids.video1_box, 1)
+        self._setup_video(self.ids.video_container_2, app.current_lab_v2, "Видео 2", self.ids.video2_box, 2)
+
+    def _manage_visibility(self, app):
+        # Видимость блоков управляется в KV через свойства app
+        pass
+
+    def _setup_video(self, container, source, label_text, video_box, num):
         container.clear_widgets()
+        # Удаляем старую кнопку-ссылку из video_box (если была)
+        if num == 1 and self._link_btn_v1:
+            video_box.remove_widget(self._link_btn_v1)
+            self._link_btn_v1 = None
+        elif num == 2 and self._link_btn_v2:
+            video_box.remove_widget(self._link_btn_v2)
+            self._link_btn_v2 = None
+
         if not source:
             return
         if self._is_youtube(source):
-            self._show_browser_button(container, source, label_text, "youtube")
+            self._show_browser_button(container, source, label_text, video_box, num)
             return
         if "drive.google.com" in source:
             direct_url = self._process_url(source)
-            self._try_stream_video(container, direct_url, label_text)
+            self._try_stream_video(container, direct_url, label_text, video_box, num, original_url=source)
             return
-        self._show_browser_button(container, source, label_text, "open-in-new")
+        self._show_browser_button(container, source, label_text, video_box, num)
 
     def _process_url(self, url):
         if "pixeldrain.com/u/" in url:
@@ -412,7 +481,9 @@ class LabDetailsScreen(MDScreen):
             url = f"https://drive.google.com/uc?export=download&id={file_id}"
         return url
 
-    def _try_stream_video(self, container, url, label_text):
+    def _try_stream_video(self, container, url, label_text, video_box, num, original_url):
+        """Добавляет плеер в container, а кнопку-ссылку — в video_box."""
+        container.clear_widgets()
         player = VideoPlayer(
             source=url,
             state='play',
@@ -421,17 +492,47 @@ class LabDetailsScreen(MDScreen):
         )
         container.add_widget(player)
         self._current_player = player
-        Clock.schedule_once(lambda dt: self._check_player_state(player, container, url, label_text), 3)
 
-    def _check_player_state(self, player, container, url, label_text):
-        if player.state == 'stop':
-            self._show_browser_button(container, url, label_text, "open-in-new")
+        # Создаём кнопку-ссылку и добавляем в video_box (ниже контейнера)
+        btn = MDRaisedButton(
+            text="Открыть ссылку",
+            icon="open-in-new",
+            size_hint=(0.8, None),
+            height="40dp",
+            pos_hint={"center_x": .5},
+            on_release=lambda x, u=original_url: webbrowser.open(u)
+        )
+        video_box.add_widget(btn)
+        if num == 1:
+            self._link_btn_v1 = btn
+        else:
+            self._link_btn_v2 = btn
 
-    def _show_browser_button(self, container, url, label_text, icon="open-in-new"):
+        # Проверка через 3 секунды
+        Clock.schedule_once(lambda dt: self._check_player(container, url, label_text, video_box, num, original_url), 3)
+
+    def _check_player(self, container, url, label_text, video_box, num, original_url):
+        """Если плеер не запустился, заменяем на кнопку открытия в браузере и удаляем кнопку-ссылку."""
+        if self._current_player and (self._current_player.state != 'play' or
+                                      (self._current_player.duration is not None and self._current_player.duration <= 0)):
+            self._current_player.state = 'stop'
+            self._show_browser_button(container, original_url, label_text, video_box, num)
+            self._current_player = None
+
+    def _show_browser_button(self, container, url, label_text, video_box, num):
+        """Заменяет содержимое контейнера на кнопку-замену и удаляет кнопку-ссылку из video_box."""
         container.clear_widgets()
+        # Убираем кнопку-ссылку, если она была
+        if num == 1 and self._link_btn_v1:
+            video_box.remove_widget(self._link_btn_v1)
+            self._link_btn_v1 = None
+        elif num == 2 and self._link_btn_v2:
+            video_box.remove_widget(self._link_btn_v2)
+            self._link_btn_v2 = None
+
         btn = MDRaisedButton(
             text=f"Открыть {label_text} в браузере",
-            icon=icon,
+            icon="open-in-new",
             size_hint=(0.8, None),
             height="48dp",
             pos_hint={"center_x": .5},
@@ -445,8 +546,15 @@ class LabDetailsScreen(MDScreen):
     def on_pre_leave(self, *args):
         if hasattr(self, '_current_player') and self._current_player:
             self._current_player.state = 'stop'
+        # Очищаем контейнеры и удаляем кнопки-ссылки
         self.ids.video_container_1.clear_widgets()
         self.ids.video_container_2.clear_widgets()
+        if self._link_btn_v1 and self._link_btn_v1.parent:
+            self._link_btn_v1.parent.remove_widget(self._link_btn_v1)
+        if self._link_btn_v2 and self._link_btn_v2.parent:
+            self._link_btn_v2.parent.remove_widget(self._link_btn_v2)
+        self._link_btn_v1 = None
+        self._link_btn_v2 = None
 
 
 class ManualsScreen(MDScreen):
@@ -460,8 +568,9 @@ class LabApp(MDApp):
     manuals_data = DictProperty({})
     last_opened_subject = StringProperty("")
     last_opened_lab = StringProperty("")
-    admin_mode = BooleanProperty(ADMIN_MODE)  # управляется глобальной переменной
+    admin_mode = BooleanProperty(ADMIN_MODE)
     video_user_agent = StringProperty("Mozilla/5.0")
+    status_message = StringProperty("")
 
     current_lab_name = StringProperty("")
     current_lab_goal = StringProperty("")
@@ -476,8 +585,8 @@ class LabApp(MDApp):
         self.theme_cls.primary_palette = "Indigo"
 
         self.manuals_data = {"physics": [], "chemistry": []}
+        self.local_data_path = os.path.join(self.user_data_dir, 'labs_data.json')
 
-        # Диалог методички (оставлен для админа)
         manual_content = MDBoxLayout(orientation="vertical", spacing="10dp", adaptive_height=True)
         self.manual_title_field = MDTextField(hint_text="Название")
         self.manual_url_field = MDTextField(hint_text="Ссылка")
@@ -500,10 +609,13 @@ class LabApp(MDApp):
         )
         self.file_action = None
 
+        self.retry_attempt = 0
+        self.max_retries = 5
+        self.retry_timer = None
+
         root = Builder.load_string(KV)
         Clock.schedule_once(lambda dt: self.refresh_lists())
-        # Автоимпорт при старте
-        Clock.schedule_once(lambda dt: threading.Thread(target=self.startup_import, daemon=True).start(), 0.5)
+        Clock.schedule_once(lambda dt: self.try_import_with_retry(), 0.5)
         return root
 
     # ---------- Навигация ----------
@@ -554,11 +666,14 @@ class LabApp(MDApp):
             screen = self.root.get_screen(f"{subj}_list")
             cont = screen.ids.container
             cont.clear_widgets()
-            for name, data in self.labs_data.items():
-                if data.get("subject") == subj:
-                    item = OneLineListItem(text=name)
-                    item.bind(on_release=lambda x, n=name: self.open_lab(n))
-                    cont.add_widget(item)
+            sorted_labs = sorted(
+                [item for item in self.labs_data.items() if item[1].get("subject") == subj],
+                key=lambda x: x[0].lower()
+            )
+            for name, data in sorted_labs:
+                item = OneLineListItem(text=name)
+                item.bind(on_release=lambda x, n=name: self.open_lab(n))
+                cont.add_widget(item)
 
     def open_lab(self, name):
         data = self.labs_data.get(name, {})
@@ -642,19 +757,66 @@ class LabApp(MDApp):
             del self.manuals_data[subj][idx]
             self.refresh_manuals_list()
 
-    # ---------- Импорт (без GUI-кнопок) ----------
-    def startup_import(self):
+    # ---------- Импорт базы данных ----------
+    def try_import_with_retry(self, attempt=0):
+        self.retry_attempt = attempt
         url = "https://github.com/vinpap2008S/FizoksProgect/blob/master/labs_data.json"
         if "github.com" in url and "/blob/" in url:
             url = url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
-        try:
-            req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urlopen(req, timeout=15) as resp:
-                data = json.loads(resp.read().decode('utf-8'))
-            if isinstance(data, dict):
-                Clock.schedule_once(lambda dt, d=data: self.process_imported_data(d))
-        except Exception:
-            pass
+
+        def download_and_process():
+            try:
+                req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urlopen(req, timeout=15) as resp:
+                    raw = resp.read().decode('utf-8')
+                data = json.loads(raw)
+                if isinstance(data, dict):
+                    try:
+                        with open(self.local_data_path, "w", encoding="utf-8") as f:
+                            json.dump(data, f, ensure_ascii=False, indent=2)
+                    except Exception:
+                        pass
+                    Clock.schedule_once(lambda dt: self.process_imported_data(data))
+                    Clock.schedule_once(lambda dt: self._update_status("Данные успешно загружены"))
+                    self.retry_attempt = self.max_retries
+                else:
+                    raise ValueError("Некорректный формат данных")
+            except Exception as e:
+                if self.retry_attempt < self.max_retries - 1:
+                    self.retry_timer = Clock.schedule_once(
+                        lambda dt: self.try_import_with_retry(self.retry_attempt + 1), 60
+                    )
+                    Clock.schedule_once(lambda dt: self._update_status(f"Ошибка загрузки. Повтор через 1 мин ({self.retry_attempt+2}/{self.max_retries})"))
+                else:
+                    if os.path.exists(self.local_data_path):
+                        try:
+                            with open(self.local_data_path, "r", encoding="utf-8") as f:
+                                local_data = json.load(f)
+                            Clock.schedule_once(lambda dt: self.process_imported_data(local_data))
+                            Clock.schedule_once(lambda dt: self._update_status("Используются локальные данные"))
+                        except Exception:
+                            Clock.schedule_once(lambda dt: self._update_status("Не удалось загрузить базу данных"))
+                    else:
+                        Clock.schedule_once(lambda dt: self._update_status("Не удалось загрузить базу данных"))
+                if self.retry_attempt == 0 and os.path.exists(self.local_data_path):
+                    try:
+                        with open(self.local_data_path, "r", encoding="utf-8") as f:
+                            local_data = json.load(f)
+                        Clock.schedule_once(lambda dt: self.process_imported_data(local_data))
+                        Clock.schedule_once(lambda dt: self._update_status("Используются локальные данные (обновление не удалось)"))
+                    except Exception:
+                        pass
+
+        threading.Thread(target=download_and_process, daemon=True).start()
+
+    def _update_status(self, message):
+        self.status_message = message
+        if "Используются" not in message and "Не удалось" not in message:
+            Clock.schedule_once(lambda dt: self._hide_status(), 10)
+
+    def _hide_status(self):
+        if "Используются" not in self.status_message and "Не удалось" not in self.status_message:
+            self.status_message = ""
 
     def process_imported_data(self, data):
         if isinstance(data, dict):
@@ -674,12 +836,15 @@ class LabApp(MDApp):
                     info["subject"] = "physics"
                 self.labs_data[name] = info
 
+    def on_stop(self):
+        if self.retry_timer:
+            self.retry_timer.cancel()
+
     def exit_manager_callback(self, *args):
         self.file_action = None
         self.file_manager.close()
 
     def select_path_callback(self, path):
-        # Оставлено для возможного будущего использования
         pass
 
 

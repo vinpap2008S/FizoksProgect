@@ -61,6 +61,9 @@ ScreenManager:
     ManualsScreen:
         name: "manuals"
 
+    ThanksScreen:
+        name: "thanks"
+
 
 <MenuScreen>:
     MDScreen:
@@ -190,11 +193,11 @@ ScreenManager:
                     on_release: app.open_url("https://github.com/vinpap2008S/FizoksProgect")
 
                 MDRaisedButton:
-                    text: "Автор: vinpap2008S"
-                    icon: "account"
+                    text: "Благодарности"
+                    icon: "hand-heart"
                     size_hint_x: 0.8
                     pos_hint: {"center_x": .5}
-                    on_release: app.open_url("https://github.com/vinpap2008S")
+                    on_release: app.go_to_thanks()
 
                 MDRaisedButton:
                     text: "Проверить обновления"
@@ -494,6 +497,29 @@ ScreenManager:
             opacity: 1 if app.admin_mode else 0
             disabled: not app.admin_mode
             on_release: app.show_add_manual_dialog()
+
+
+<ThanksScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: "Благодарности"
+            left_action_items: [["arrow-left", lambda x: app.go_to_menu()]]
+        ScrollView:
+            MDBoxLayout:
+                orientation: "vertical"
+                padding: "20dp"
+                spacing: "15dp"
+                adaptive_height: True
+                MDLabel:
+                    text: "Предоставили материалы по ВАРКТу"
+                    font_style: "H6"
+                    bold: True
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                MDLabel:
+                    text: "Волынец Александр, Гадай Игорь, Гринкевич Софья, Павлов Иван, Пожидаев Виктор"
+                    theme_text_color: "Secondary"
 '''
 
 
@@ -522,7 +548,6 @@ class SectionListScreen(MDScreen):
 class SubjectListScreen(MDScreen):
     def go_to_manuals(self):
         app = MDApp.get_running_app()
-        # Используем current_subject из приложения (исправление ошибки AttributeError)
         app.root.current = "manuals"
         app.refresh_manuals_list()
 
@@ -632,6 +657,10 @@ class ManualsScreen(MDScreen):
     pass
 
 
+class ThanksScreen(MDScreen):
+    pass
+
+
 # ========== ГЛАВНОЕ ПРИЛОЖЕНИЕ ==========
 class LabApp(MDApp):
     current_subject = StringProperty("physics")
@@ -703,6 +732,9 @@ class LabApp(MDApp):
     # ---------- Навигация ----------
     def go_to_menu(self):
         self.root.current = "menu"
+
+    def go_to_thanks(self):
+        self.root.current = "thanks"
 
     def go_to_subject(self, subject):
         self.current_subject = subject

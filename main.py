@@ -1196,28 +1196,93 @@ class LabApp(MDApp):
     def show_data_management_dialog(self):
         if not self.admin_mode:
             return
+
+        # Основной вертикальный контейнер
+        main_layout = MDBoxLayout(
+            orientation="vertical",
+            spacing="12dp",
+            padding="10dp",
+            adaptive_height=True
+        )
+
+        # Первый ряд: две кнопки
+        row1 = MDBoxLayout(
+            orientation="horizontal",
+            spacing="12dp",
+            adaptive_height=True,
+            size_hint_y=None,
+            height="56dp"
+        )
+        btn_update = MDRaisedButton(
+            text="Скачать\nобновлённую базу",
+            size_hint_x=1,
+            size_hint_y=1
+        )
+        btn_export = MDRaisedButton(
+            text="Экспорт\nбазы данных",
+            size_hint_x=1,
+            size_hint_y=1
+        )
+        row1.add_widget(btn_update)
+        row1.add_widget(btn_export)
+
+        # Второй ряд: кнопка слева, пустота справа
+        row2 = MDBoxLayout(
+            orientation="horizontal",
+            spacing="12dp",
+            adaptive_height=True,
+            size_hint_y=None,
+            height="56dp"
+        )
+        btn_path = MDRaisedButton(
+            text="Показать\nпуть к файлу",
+            size_hint_x=1,
+            size_hint_y=1
+        )
+        spacer = MDBoxLayout(size_hint_x=1)  # занимает правую половину
+        row2.add_widget(btn_path)
+        row2.add_widget(spacer)
+
+        main_layout.add_widget(row1)
+        main_layout.add_widget(row2)
+
+        # Нижний ряд с кнопкой «Закрыть» в правом углу
+        bottom_row = MDBoxLayout(
+            orientation="horizontal",
+            spacing="12dp",
+            adaptive_height=True,
+            size_hint_y=None,
+            height="56dp",
+            padding=[0, "12dp", 0, 0]  # небольшой отступ сверху
+        )
+        # Растягивающаяся пустота слева
+        bottom_row.add_widget(MDBoxLayout(size_hint_x=1))
+        btn_close = MDRaisedButton(
+            text="Закрыть",
+            md_bg_color=(0.8, 0.4, 0.2, 1.0),  # цвет как у кнопки ВАРКТ
+            text_color=(1, 1, 1, 1),  # белый текст для контраста
+            size_hint_x=None,
+            size_hint_y=1,
+            width="120dp"  # фиксированная ширина
+        )
+        bottom_row.add_widget(btn_close)
+
+        main_layout.add_widget(bottom_row)
+
+        # Создаём диалог
         dialog = MDDialog(
             title="Управление базой данных",
-            type="simple",
-            buttons=[
-                MDFlatButton(
-                    text="Скачать обновлённую базу",
-                    on_release=lambda x: self._force_update_and_close(dialog)
-                ),
-                MDFlatButton(
-                    text="Экспорт базы данных",
-                    on_release=lambda x: self._start_export_and_close(dialog)
-                ),
-                MDFlatButton(
-                    text="Показать путь к файлу",
-                    on_release=lambda x: self._show_path_and_close(dialog)
-                ),
-                MDFlatButton(
-                    text="Закрыть",
-                    on_release=lambda x: dialog.dismiss()
-                ),
-            ],
+            type="custom",
+            content_cls=main_layout,
+            buttons=[],  # стандартные кнопки не используем
         )
+
+        # Привязываем действия
+        btn_update.bind(on_release=lambda x: self._force_update_and_close(dialog))
+        btn_export.bind(on_release=lambda x: self._start_export_and_close(dialog))
+        btn_path.bind(on_release=lambda x: self._show_path_and_close(dialog))
+        btn_close.bind(on_release=lambda x: dialog.dismiss())
+
         dialog.open()
 
     def _force_update_and_close(self, dialog):

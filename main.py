@@ -1,4 +1,3 @@
-# Подавляем надоедливый лог "[Image] Not found" от Kivy
 import logging
 logging.getLogger('kivy.core.image').setLevel(logging.ERROR)
 
@@ -509,8 +508,20 @@ ScreenManager:
             MDBoxLayout:
                 orientation: "vertical"
                 padding: "20dp"
-                spacing: "15dp"
+                spacing: "20dp"
                 adaptive_height: True
+                MDLabel:
+                    text: "Консультировали по содержанию, предоставили лаборатории и вдохновили на создание проекта"
+                    font_style: "H6"
+                    bold: True
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                MDLabel:
+                    text: "Александр Георгиевич Браун – доцент кафедры 915, кандидат технических наук; Иван Сергеевич Сафронов – доцент кафедры 915, кандидат физико-математических наук"
+                    theme_text_color: "Secondary"
+                MDSeparator:
+                    size_hint_y: None
+                    height: "2dp"
                 MDLabel:
                     text: "Предоставили материалы по ВАРКТу"
                     font_style: "H6"
@@ -519,6 +530,18 @@ ScreenManager:
                     height: self.texture_size[1]
                 MDLabel:
                     text: "Волынец Александр, Гадай Игорь, Гринкевич Софья, Павлов Иван, Пожидаев Виктор"
+                    theme_text_color: "Secondary"
+                MDSeparator:
+                    size_hint_y: None
+                    height: "2dp"
+                MDLabel:
+                    text: "Курировал проект"
+                    font_style: "H6"
+                    bold: True
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                MDLabel:
+                    text: "Виктор Юрьевич Мищенко – старший преподаватель кафедры 103"
                     theme_text_color: "Secondary"
 '''
 

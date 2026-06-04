@@ -1197,7 +1197,7 @@ class LabApp(MDApp):
         if not self.admin_mode:
             return
 
-        # Основной вертикальный контейнер
+        # Вертикальный контейнер для всех элементов
         main_layout = MDBoxLayout(
             orientation="vertical",
             spacing="12dp",
@@ -1205,48 +1205,31 @@ class LabApp(MDApp):
             adaptive_height=True
         )
 
-        # Первый ряд: две кнопки
-        row1 = MDBoxLayout(
-            orientation="horizontal",
-            spacing="12dp",
-            adaptive_height=True,
+        # Три кнопки вертикально, растянутые по ширине
+        btn_update = MDRaisedButton(
+            text="Скачать обновлённую базу",
+            size_hint_x=1,
             size_hint_y=None,
             height="56dp"
         )
-        btn_update = MDRaisedButton(
-            text="Скачать\nобновлённую базу",
-            size_hint_x=1,
-            size_hint_y=1
-        )
         btn_export = MDRaisedButton(
-            text="Экспорт\nбазы данных",
+            text="Экспорт базы данных",
             size_hint_x=1,
-            size_hint_y=1
-        )
-        row1.add_widget(btn_update)
-        row1.add_widget(btn_export)
-
-        # Второй ряд: кнопка слева, пустота справа
-        row2 = MDBoxLayout(
-            orientation="horizontal",
-            spacing="12dp",
-            adaptive_height=True,
             size_hint_y=None,
             height="56dp"
         )
         btn_path = MDRaisedButton(
-            text="Показать\nпуть к файлу",
+            text="Показать путь к файлу",
             size_hint_x=1,
-            size_hint_y=1
+            size_hint_y=None,
+            height="56dp"
         )
-        spacer = MDBoxLayout(size_hint_x=1)  # занимает правую половину
-        row2.add_widget(btn_path)
-        row2.add_widget(spacer)
 
-        main_layout.add_widget(row1)
-        main_layout.add_widget(row2)
+        main_layout.add_widget(btn_update)
+        main_layout.add_widget(btn_export)
+        main_layout.add_widget(btn_path)
 
-        # Нижний ряд с кнопкой «Закрыть» в правом углу
+        # Нижний ряд: кнопка «Закрыть» справа
         bottom_row = MDBoxLayout(
             orientation="horizontal",
             spacing="12dp",
@@ -1260,13 +1243,12 @@ class LabApp(MDApp):
         btn_close = MDRaisedButton(
             text="Закрыть",
             md_bg_color=(0.8, 0.4, 0.2, 1.0),  # цвет как у кнопки ВАРКТ
-            text_color=(1, 1, 1, 1),  # белый текст для контраста
+            text_color=(1, 1, 1, 1),
             size_hint_x=None,
             size_hint_y=1,
-            width="120dp"  # фиксированная ширина
+            width="120dp"
         )
         bottom_row.add_widget(btn_close)
-
         main_layout.add_widget(bottom_row)
 
         # Создаём диалог

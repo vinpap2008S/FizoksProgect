@@ -508,7 +508,7 @@ ScreenManager:
             MDBoxLayout:
                 orientation: "vertical"
                 padding: "20dp"
-                spacing: "20dp"
+                spacing: "40dp"
                 adaptive_height: True
                 MDLabel:
                     text: "Консультировали по содержанию, предоставили лаборатории и вдохновили на создание проекта"

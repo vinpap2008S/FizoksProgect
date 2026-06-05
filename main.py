@@ -1,16 +1,17 @@
 import logging
 logging.getLogger('kivy.core.image').setLevel(logging.ERROR)
 
-import shutil  # для экспорта файлов
+import ssl
+import shutil
+import platform
 
 from kivymd.app import MDApp
 from kivy.lang import Builder
-import sys
 from kivy.core.window import Window
-from kivy.core.clipboard import Clipboard  # для копирования в буфер обмена
+from kivy.core.clipboard import Clipboard
 from kivy.uix.videoplayer import VideoPlayer
 from kivymd.uix.screen import MDScreen
-from kivymd.uix.list import OneLineListItem, TwoLineListItem
+from kivymd.uix.list import OneLineListItem
 from kivy.properties import StringProperty, DictProperty, BooleanProperty
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.textfield import MDTextField
@@ -27,9 +28,6 @@ import re
 from urllib.request import urlopen, Request
 
 ADMIN_MODE = True
-
-# Путь для хранения данных. Оставьте None, чтобы использовать системную папку приложения.
-# Пример ручного задания: CUSTOM_DATA_PATH = r"C:\MyAppData"
 CUSTOM_DATA_PATH = None
 
 KV = '''
@@ -38,39 +36,26 @@ ScreenManager:
 
     MenuScreen:
         name: "menu"
-
     SettingsScreen:
         name: "settings"
-
     SectionListScreen:
         name: "sections_list"
-
     SubjectListScreen:
         name: "lab_list"
-
     AddLabScreen:
         name: "add_lab"
-
     LabDetailsScreen:
         name: "lab_details"
-
     VarktLabDetailsScreen:
         name: "varkt_lab_details"
-
     ManualsScreen:
         name: "manuals"
-
     ThanksScreen:
         name: "thanks"
 
 
 <MenuScreen>:
     MDScreen:
-        canvas.before:
-            Rectangle:
-                source: 'C:/Users/vikit/PyCharmMiscProject/back_sky.jpeg'
-                size: self.size
-                pos: self.pos
         MDBoxLayout:
             orientation: "vertical"
             size_hint: 1, 1
@@ -86,12 +71,24 @@ ScreenManager:
                 opacity: 1 if app.status_message else 0
                 md_bg_color: app.theme_cls.primary_color
                 padding: "8dp"
+                spacing: "8dp"
+
                 MDLabel:
                     text: app.status_message
                     theme_text_color: "Custom"
                     text_color: 1, 1, 1, 1
                     halign: "center"
                     font_style: "Caption"
+                    size_hint_x: 0.8
+                MDIconButton:
+                    icon: "content-copy"
+                    theme_text_color: "Custom"
+                    text_color: 1, 1, 1, 1
+                    size_hint_x: None
+                    width: "48dp"
+                    opacity: 1 if app.show_copy_button else 0
+                    disabled: not app.show_copy_button
+                    on_release: app.copy_error_to_clipboard()
 
             MDBoxLayout:
                 size_hint_y: None
@@ -193,7 +190,7 @@ ScreenManager:
 
                 MDRaisedButton:
                     text: "Благодарности"
-                    icon: "hand-heart"
+                    icon: "heart"
                     size_hint_x: 0.8
                     pos_hint: {"center_x": .5}
                     on_release: app.go_to_thanks()
@@ -212,7 +209,6 @@ ScreenManager:
                     pos_hint: {"center_x": .5}
                     on_release: app.open_url("https://github.com/vinpap2008S/FizoksProgect/issues")
 
-                # ---------- Кнопка управления данными (только для админа) ----------
                 MDRaisedButton:
                     text: "Управление данными"
                     icon: "database"
@@ -585,6 +581,7 @@ class LabDetailsScreen(MDScreen):
         self._current_player = None
         self._link_btn_v1 = None
         self._link_btn_v2 = None
+        self._fallback_timers = []
 
     def on_pre_enter(self, *args):
         app = MDApp.get_running_app()
@@ -605,14 +602,13 @@ class LabDetailsScreen(MDScreen):
             self._link_btn_v2 = None
         if not source:
             return
+
         if self._is_youtube(source):
             self._show_browser_button(container, source, label_text, video_box, num)
             return
-        if "drive.google.com" in source:
-            direct_url = self._process_url(source)
-            self._try_stream_video(container, direct_url, label_text, video_box, num, original_url=source)
-            return
-        self._show_browser_button(container, source, label_text, video_box, num)
+
+        direct_url = self._process_url(source)
+        self._try_stream_video(container, direct_url, label_text, video_box, num, original_url=source)
 
     def _process_url(self, url):
         if "pixeldrain.com/u/" in url:
@@ -628,6 +624,7 @@ class LabDetailsScreen(MDScreen):
         player = VideoPlayer(source=url, state='play', options={'eos': 'loop'}, size_hint=(1, 1))
         container.add_widget(player)
         self._current_player = player
+
         btn = MDRaisedButton(
             text="Открыть ссылку в браузере", icon="open-in-new", size_hint=(0.8, None), height="40dp",
             pos_hint={"center_x": .5}, on_release=lambda x, u=original_url: self.app.open_url(u)
@@ -637,6 +634,23 @@ class LabDetailsScreen(MDScreen):
             self._link_btn_v1 = btn
         else:
             self._link_btn_v2 = btn
+
+        # На Android – fallback через 8 секунд, если видео не пошло
+        if platform.system() == 'Android':
+            timer = Clock.schedule_once(
+                lambda dt: self._check_player_and_fallback(container, original_url, label_text, video_box, num), 8
+            )
+            self._fallback_timers.append(timer)
+
+    def _check_player_and_fallback(self, container, original_url, label_text, video_box, num):
+        if self._current_player and (
+            self._current_player.state == 'stop' or
+            self._current_player.duration is None or
+            self._current_player.duration <= 0
+        ):
+            self._current_player.state = 'stop'
+            self._current_player = None
+            self._show_browser_button(container, original_url, label_text, video_box, num)
 
     def _show_browser_button(self, container, url, label_text, video_box, num):
         container.clear_widgets()
@@ -656,8 +670,11 @@ class LabDetailsScreen(MDScreen):
         return "youtube.com" in url or "youtu.be" in url
 
     def on_pre_leave(self, *args):
-        if hasattr(self, '_current_player') and self._current_player:
+        if self._current_player:
             self._current_player.state = 'stop'
+        for timer in self._fallback_timers:
+            timer.cancel()
+        self._fallback_timers.clear()
         self.ids.video_container_1.clear_widgets()
         self.ids.video_container_2.clear_widgets()
         if self._link_btn_v1 and self._link_btn_v1.parent:
@@ -686,6 +703,10 @@ class ThanksScreen(MDScreen):
 
 # ========== ГЛАВНОЕ ПРИЛОЖЕНИЕ ==========
 class LabApp(MDApp):
+    # URL для фоновой загрузки данных
+    LABS_URL = "https://raw.githubusercontent.com/vinpap2008S/FizoksProgect/master/labs_data.json"
+    MANUALS_URL = "https://raw.githubusercontent.com/vinpap2008S/FizoksProgect/master/manuals_data.json"
+
     current_subject = StringProperty("physics")
     current_section = StringProperty("")
     last_opened_subject = StringProperty("")
@@ -693,8 +714,9 @@ class LabApp(MDApp):
     last_opened_lab = StringProperty("")
     admin_mode = BooleanProperty(ADMIN_MODE)
     status_message = StringProperty("")
+    error_status = StringProperty("")
+    show_copy_button = BooleanProperty(False)
 
-    # поля для физики/химии
     current_lab_name = StringProperty("")
     current_lab_goal = StringProperty("")
     current_lab_tools = StringProperty("")
@@ -702,7 +724,6 @@ class LabApp(MDApp):
     current_lab_v1 = StringProperty("")
     current_lab_v2 = StringProperty("")
 
-    # поля для ВАРКТ
     current_varkt_title = StringProperty("")
     current_varkt_prep = StringProperty("")
     current_varkt_access = StringProperty("")
@@ -724,12 +745,13 @@ class LabApp(MDApp):
         self.manuals_data_path = os.path.join(base_dir, 'manuals_data.json')
 
         self.init_manual_dialog()
-
-        self.file_manager = MDFileManager(exit_manager=self.exit_manager_callback, select_path=self.select_path_callback)
-        self.retry_attempt = 0
-        self.max_retries = 5
-        self.retry_timer = None
+        self.file_manager = MDFileManager(
+            exit_manager=self.exit_manager_callback,
+            select_path=self.select_path_callback
+        )
         self.section_menu = None
+        self.retry_attempt = 0
+        self.retry_timer = None
 
         root = Builder.load_string(KV)
         Clock.schedule_once(lambda dt: self.try_import_with_retry(), 0.5)
@@ -802,22 +824,20 @@ class LabApp(MDApp):
         names = {"physics": "Физика", "chemistry": "Химия", "varkt": "ВАРКТ"}
         return names.get(subject, subject)
 
-    # ---------- Разделы (только физика/химия) ----------
+    # ---------- Разделы ----------
     def refresh_sections_list(self):
         screen = self.root.get_screen("sections_list")
         screen.ids.sections_title.title = f"{self.get_subject_name(self.current_subject)} - Разделы"
         container = screen.ids.sections_container
         container.clear_widgets()
-        sections = self.get_sections()
-        for sec in sections:
+        for sec in self.get_sections():
             name = sec["name"]
             item = OneLineListItem(text=name)
             item.bind(on_release=lambda x, n=name: self.go_to_lab_list(n))
             container.add_widget(item)
 
     def get_sections(self):
-        subject_data = self.data.get(self.current_subject, {})
-        return subject_data.get("sections", [])
+        return self.data.get(self.current_subject, {}).get("sections", [])
 
     def add_section(self, section_name):
         if not section_name or self.current_subject == "varkt":
@@ -864,8 +884,7 @@ class LabApp(MDApp):
         if labs_dict:
             if self.current_subject == "varkt":
                 for lab_id, lab_data in labs_dict.items():
-                    title = lab_data.get("title", "")
-                    item = OneLineListItem(text=title)
+                    item = OneLineListItem(text=lab_data.get("title", ""))
                     item.bind(on_release=lambda x, n=lab_id: self.open_varkt_lab(n))
                     container.add_widget(item)
             else:
@@ -876,14 +895,11 @@ class LabApp(MDApp):
 
     def get_labs_dict(self):
         if self.current_subject == "varkt":
-            subject_data = self.data.get("varkt", {})
-            return subject_data.get("labs", {})
-        else:
-            sections = self.get_sections()
-            for sec in sections:
-                if sec["name"] == self.current_section:
-                    return sec.get("labs", {})
-            return {}
+            return self.data.get("varkt", {}).get("labs", {})
+        for sec in self.get_sections():
+            if sec["name"] == self.current_section:
+                return sec.get("labs", {})
+        return {}
 
     def add_new_lab(self):
         if not self.admin_mode or self.current_subject == "varkt":
@@ -906,13 +922,7 @@ class LabApp(MDApp):
         found = False
         for sec in sections:
             if sec["name"] == section:
-                sec["labs"][name] = {
-                    "goal": goal,
-                    "v1": v1,
-                    "v2": v2,
-                    "tools": tools,
-                    "qs": qs
-                }
+                sec["labs"][name] = {"goal": goal, "v1": v1, "v2": v2, "tools": tools, "qs": qs}
                 found = True
                 break
         if not found:
@@ -957,7 +967,7 @@ class LabApp(MDApp):
             except:
                 pass
 
-    # ---------- Выпадающий список разделов (только физика/химия) ----------
+    # ---------- Выпадающий список разделов ----------
     def update_section_menu_items(self):
         if self.current_subject == "varkt":
             return
@@ -1047,7 +1057,6 @@ class LabApp(MDApp):
             self.refresh_manuals_list()
             self.save_manuals_to_file()
 
-    # ---------- Сохранение / загрузка методичек ----------
     def save_manuals_to_file(self):
         try:
             with open(self.manuals_data_path, "w", encoding="utf-8") as f:
@@ -1063,7 +1072,7 @@ class LabApp(MDApp):
             except Exception as e:
                 print("Ошибка загрузки методичек:", e)
 
-    # ---------- Импорт и сохранение основных данных ----------
+    # ---------- Загрузка данных (SSL без проверки) ----------
     def save_data_to_file(self):
         try:
             with open(self.local_data_path, "w", encoding="utf-8") as f:
@@ -1072,65 +1081,91 @@ class LabApp(MDApp):
         except Exception as e:
             print("Ошибка сохранения:", e)
 
+    def _get_ssl_context(self):
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        return ctx
+
+    # ---------- Фоновая загрузка лабораторных ----------
     def _check_for_updates_background(self):
-        """Фоновый поток: скачивает актуальный labs_data.json и обновляет приложение."""
-        url = "https://raw.githubusercontent.com/vinpap2008S/FizoksProgect/master/labs_data.json"
         try:
-            req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urlopen(req, timeout=15) as resp:
+            req = Request(self.LABS_URL, headers={'User-Agent': 'Mozilla/5.0'})
+            with urlopen(req, timeout=15, context=self._get_ssl_context()) as resp:
                 raw = resp.read().decode('utf-8')
             new_data = json.loads(raw)
-            if not isinstance(new_data, dict):
-                return
-            migrated = self.migrate_if_needed(new_data)
-            self.data = migrated
-            self.save_data_to_file()
-            Clock.schedule_once(lambda dt: self.post_load())
-            Clock.schedule_once(lambda dt: self._update_status("База данных обновлена из сети"))
+            if isinstance(new_data, dict):
+                migrated = self.migrate_if_needed(new_data)
+                Clock.schedule_once(lambda dt: self._apply_updated_data(migrated))
         except Exception as e:
-            print("Ошибка фонового обновления:", e)
+            err_msg = str(e)
+            print("Ошибка фонового обновления:", err_msg)
+            Clock.schedule_once(lambda dt: self._update_status(f"Ошибка обновления: {err_msg}"))
 
+    def _apply_updated_data(self, migrated):
+        self.data = migrated
+        self.save_data_to_file()
+        self.post_load()
+        self._update_status("База данных обновлена из сети")
+
+    # ---------- Фоновая загрузка методичек ----------
+    def _check_for_manuals_updates_background(self):
+        try:
+            req = Request(self.MANUALS_URL, headers={'User-Agent': 'Mozilla/5.0'})
+            with urlopen(req, timeout=15, context=self._get_ssl_context()) as resp:
+                raw = resp.read().decode('utf-8')
+            new_manuals = json.loads(raw)
+            if isinstance(new_manuals, dict):
+                if any(k in new_manuals for k in ("physics", "chemistry", "varkt")):
+                    Clock.schedule_once(lambda dt: self._apply_updated_manuals(new_manuals))
+        except Exception as e:
+            print("Ошибка фонового обновления методичек:", e)
+
+    def _apply_updated_manuals(self, manuals):
+        self.manuals_data = manuals
+        self.save_manuals_to_file()
+        self.refresh_manuals_list()
+        self._update_status("Методички обновлены из сети")
+
+    # ---------- Инициализация данных при старте ----------
     def try_import_with_retry(self, attempt=0):
         self.retry_attempt = attempt
-        # 1. Всегда сначала загружаем локальный файл (мгновенный старт)
         if os.path.exists(self.local_data_path):
             try:
                 with open(self.local_data_path, "r", encoding="utf-8") as f:
-                    local_data = json.load(f)
-                self.data = self.migrate_if_needed(local_data)
+                    self.data = self.migrate_if_needed(json.load(f))
                 self.load_manuals_from_file()
-                Clock.schedule_once(lambda dt: self.post_load())
-                Clock.schedule_once(lambda dt: self._update_status("Данные загружены из локального файла"))
+                self.post_load()
+                self._update_status("Данные загружены из локального файла")
             except Exception as e:
                 print("Ошибка загрузки локального JSON:", e)
-
-            # 2. В фоне пытаемся скачать свежую версию
+            # Запускаем фоновую проверку обновлений для обоих файлов
             threading.Thread(target=self._check_for_updates_background, daemon=True).start()
+            threading.Thread(target=self._check_for_manuals_updates_background, daemon=True).start()
             return
 
-        # Если локального файла нет — пробуем скачать из сети (как раньше)
-        url = "https://raw.githubusercontent.com/vinpap2008S/FizoksProgect/master/labs_data.json"
+        # Нет локального файла – загрузка из сети
         def download_and_process():
             try:
-                req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-                with urlopen(req, timeout=15) as resp:
+                req = Request(self.LABS_URL, headers={'User-Agent': 'Mozilla/5.0'})
+                with urlopen(req, timeout=15, context=self._get_ssl_context()) as resp:
                     raw = resp.read().decode('utf-8')
                 data = json.loads(raw)
                 if isinstance(data, dict):
                     migrated = self.migrate_if_needed(data)
-                    self.data = migrated
-                    self.save_data_to_file()
-                    self.load_manuals_from_file()
-                    Clock.schedule_once(lambda dt: self.post_load())
+                    Clock.schedule_once(lambda dt: self._apply_updated_data(migrated))
                     Clock.schedule_once(lambda dt: self._update_status("Данные успешно загружены из сети"))
-                else:
-                    raise ValueError("Некорректный формат данных")
+                    # После успешной загрузки лабораторных запускаем загрузку методичек
+                    threading.Thread(target=self._check_for_manuals_updates_background, daemon=True).start()
             except Exception as e:
-                Clock.schedule_once(lambda dt: self._update_status("Не удалось загрузить данные из сети, используем пустую базу"))
-                self.data = self.migrate_if_needed({})
-                Clock.schedule_once(lambda dt: self.post_load())
-
+                Clock.schedule_once(lambda dt: self._update_status(f"Не удалось загрузить данные: {e}"))
+                Clock.schedule_once(lambda dt: self._set_empty_data())
         threading.Thread(target=download_and_process, daemon=True).start()
+
+    def _set_empty_data(self):
+        self.data = self.migrate_if_needed({})
+        self.load_manuals_from_file()
+        self.post_load()
 
     def migrate_if_needed(self, data):
         allowed_subjects = ("physics", "chemistry", "varkt")
@@ -1155,29 +1190,8 @@ class LabApp(MDApp):
                             else:
                                 new_data[subj]["sections"] = []
                 else:
-                    if subj == "varkt":
-                        new_data[subj] = {"labs": {}}
-                    else:
-                        new_data[subj] = {"sections": []}
+                    new_data[subj] = {"sections": []} if subj != "varkt" else {"labs": {}}
             return new_data
-
-        if "labs" in data:
-            old_labs = data["labs"]
-            new_data = {"physics": {"sections": []}, "chemistry": {"sections": []}, "varkt": {"labs": {}}}
-            labs_by_subject = {"physics": {}, "chemistry": {}, "varkt": {}}
-            for lab_name, lab_info in old_labs.items():
-                subj = lab_info.get("subject", "physics")
-                if subj not in labs_by_subject:
-                    subj = "physics"
-                clean_info = {k: v for k, v in lab_info.items() if k in ("goal", "v1", "v2", "tools", "qs")}
-                labs_by_subject[subj][lab_name] = clean_info
-            for subj in ("physics", "chemistry"):
-                if labs_by_subject[subj]:
-                    new_data[subj]["sections"].append({"name": "Основные", "labs": labs_by_subject[subj]})
-            if "manuals" in data:
-                self.manuals_data = data["manuals"]
-            return new_data
-
         return {"physics": {"sections": []}, "chemistry": {"sections": []}, "varkt": {"labs": {}}}
 
     def post_load(self):
@@ -1187,99 +1201,63 @@ class LabApp(MDApp):
 
     def _update_status(self, message):
         self.status_message = message
+        if "ошибка" in message.lower():
+            self.error_status = message
+            self.show_copy_button = True
+        else:
+            self.error_status = ""
+            self.show_copy_button = False
         Clock.schedule_once(lambda dt: self._hide_status(), 5)
 
     def _hide_status(self):
         self.status_message = ""
+        self.error_status = ""
+        self.show_copy_button = False
 
-    # ---------- Управление данными (админ-режим) ----------
+    def copy_error_to_clipboard(self):
+        if self.error_status:
+            Clipboard.copy(self.error_status)
+            self.show_copy_button = False
+            self.status_message = "Ошибка скопирована в буфер обмена"
+            Clock.schedule_once(lambda dt: self._hide_status(), 2)
+
+    # ---------- Управление данными (админ) ----------
     def show_data_management_dialog(self):
         if not self.admin_mode:
             return
-
-        # Вертикальный контейнер для всех элементов
-        main_layout = MDBoxLayout(
-            orientation="vertical",
-            spacing="12dp",
-            padding="10dp",
-            adaptive_height=True
-        )
-
-        # Три кнопки вертикально, растянутые по ширине
-        btn_update = MDRaisedButton(
-            text="Скачать обновлённую базу",
-            size_hint_x=1,
-            size_hint_y=None,
-            height="56dp"
-        )
-        btn_export = MDRaisedButton(
-            text="Экспорт базы данных",
-            size_hint_x=1,
-            size_hint_y=None,
-            height="56dp"
-        )
-        btn_path = MDRaisedButton(
-            text="Показать путь к файлу",
-            size_hint_x=1,
-            size_hint_y=None,
-            height="56dp"
-        )
-
+        main_layout = MDBoxLayout(orientation="vertical", spacing="12dp", padding="10dp", adaptive_height=True)
+        btn_update = MDRaisedButton(text="Скачать обновлённую базу", size_hint_x=1, size_hint_y=None, height="56dp")
+        btn_export = MDRaisedButton(text="Экспорт базы данных", size_hint_x=1, size_hint_y=None, height="56dp")
+        btn_path = MDRaisedButton(text="Показать путь к файлу", size_hint_x=1, size_hint_y=None, height="56dp")
         main_layout.add_widget(btn_update)
         main_layout.add_widget(btn_export)
         main_layout.add_widget(btn_path)
 
-        # Нижний ряд: кнопка «Закрыть» справа
-        bottom_row = MDBoxLayout(
-            orientation="horizontal",
-            spacing="12dp",
-            adaptive_height=True,
-            size_hint_y=None,
-            height="56dp",
-            padding=[0, "12dp", 0, 0]  # небольшой отступ сверху
-        )
-        # Растягивающаяся пустота слева
+        bottom_row = MDBoxLayout(orientation="horizontal", spacing="12dp", adaptive_height=True, size_hint_y=None, height="56dp", padding=[0, "12dp", 0, 0])
         bottom_row.add_widget(MDBoxLayout(size_hint_x=1))
-        btn_close = MDRaisedButton(
-            text="Закрыть",
-            md_bg_color=(0.8, 0.4, 0.2, 1.0),  # цвет как у кнопки ВАРКТ
-            text_color=(1, 1, 1, 1),
-            size_hint_x=None,
-            size_hint_y=1,
-            width="120dp"
-        )
+        btn_close = MDRaisedButton(text="Закрыть", md_bg_color=(0.8, 0.4, 0.2, 1.0), text_color=(1,1,1,1), size_hint_x=None, size_hint_y=1, width="120dp")
         bottom_row.add_widget(btn_close)
         main_layout.add_widget(bottom_row)
 
-        # Создаём диалог
-        dialog = MDDialog(
-            title="Управление базой данных",
-            type="custom",
-            content_cls=main_layout,
-            buttons=[],  # стандартные кнопки не используем
-        )
-
-        # Привязываем действия
+        dialog = MDDialog(title="Управление базой данных", type="custom", content_cls=main_layout, buttons=[])
         btn_update.bind(on_release=lambda x: self._force_update_and_close(dialog))
         btn_export.bind(on_release=lambda x: self._start_export_and_close(dialog))
         btn_path.bind(on_release=lambda x: self._show_path_and_close(dialog))
         btn_close.bind(on_release=lambda x: dialog.dismiss())
-
         dialog.open()
 
     def _force_update_and_close(self, dialog):
         dialog.dismiss()
-        if not self.admin_mode:
-            return
-        self.status_message = "Запущено обновление базы данных..."
-        threading.Thread(target=self._check_for_updates_background, daemon=True).start()
+        if self.admin_mode:
+            self.status_message = "Запущено обновление базы данных..."
+            threading.Thread(target=self._check_for_updates_background, daemon=True).start()
+            threading.Thread(target=self._check_for_manuals_updates_background, daemon=True).start()
 
     def _start_export_and_close(self, dialog):
         dialog.dismiss()
-        if not self.admin_mode:
-            return
-        self.file_manager.select_path = self.export_data_callback
-        self.file_manager.show(os.path.expanduser("~"))
+        if self.admin_mode:
+            self.file_manager.select_path = self.export_data_callback
+            self.file_manager.show(os.path.expanduser("~"))
 
     def export_data_callback(self, path):
         try:
@@ -1296,7 +1274,7 @@ class LabApp(MDApp):
     def _show_path_and_close(self, dialog):
         dialog.dismiss()
         path = self.local_data_path
-        Clipboard.copy(path)  # Копируем путь в буфер обмена
+        Clipboard.copy(path)
         self.status_message = f"Файл базы данных: {path} (путь скопирован в буфер обмена)"
 
     def on_stop(self):
